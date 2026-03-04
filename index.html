@@ -121,9 +121,9 @@
             72%      { filter: brightness(0.85); }
         }
         @keyframes crispPulse {
-            0%, 100% { filter: brightness(1)    saturate(1.1);  }
-            30%      { filter: brightness(1.75) saturate(1.45); }
-            65%      { filter: brightness(0.77) saturate(0.92); }
+            0%, 100% { filter: brightness(1)    saturate(1.05); }
+            30%      { filter: brightness(1.22) saturate(1.18); }
+            65%      { filter: brightness(0.9)  saturate(0.96); }
         }
 
         /* ── Sparkle field ── */
@@ -149,11 +149,11 @@
             50%      { opacity: 1;   transform: scale(1.3); }
         }
         @keyframes sparkleWarp {
-            0%   { opacity: 0;    transform: rotate(var(--angle,0deg)) scale(0.4); }
-            18%  { opacity: 1;    transform: rotate(var(--angle,0deg)) scaleX(var(--wx,4)) scaleY(0.3); }
-            55%  { opacity: 0.65; transform: rotate(var(--angle,0deg)) scaleX(calc(var(--wx,4)*0.55)) scaleY(0.5); }
-            88%  { opacity: 0.2;  transform: rotate(var(--angle,0deg)) scaleX(1.2) scaleY(0.85); }
-            100% { opacity: 0;    transform: rotate(var(--angle,0deg)) scale(0.4); }
+            0%   { opacity: var(--start-op, 0);         transform: rotate(var(--angle,0deg)) translateX(0)                              scaleX(0.5)                      scaleY(1); }
+            20%  { opacity: var(--start-op, 0);         transform: rotate(var(--angle,0deg)) translateX(calc(var(--travel) * 0.2))       scaleX(2)                        scaleY(1); }
+            30%  { opacity: var(--peak-op, 1);        transform: rotate(var(--angle,0deg)) translateX(calc(var(--travel) * 0.3))       scaleX(var(--wx,8))              scaleY(1); }
+            85%  { opacity: var(--peak-op, 1);        transform: rotate(var(--angle,0deg)) translateX(var(--travel))                   scaleX(var(--wx,8))              scaleY(1); }
+            100% { opacity: 0;                        transform: rotate(var(--angle,0deg)) translateX(var(--travel2))                  scaleX(calc(var(--wx,8) * 0.7))  scaleY(1); }
         }
 
         /* ── Shared button base ── */
@@ -821,28 +821,36 @@
             } else if (newState === 'amazing') {
                 count = 26; color = 'rgba(200,255,220,0.9)';
             } else if (newState === 'warp-low') {
-                count = 22; color = 'rgba(134,239,172,0.76)'; warping = true; warpX = 3.0;
+                count = 60;  color = 'rgba(134,239,172,0.76)'; warping = true; warpX = 7;
             } else if (newState === 'warp-med') {
-                count = 38; color = 'rgba(167,243,208,0.84)'; warping = true; warpX = 5.0;
+                count = 150; color = 'rgba(167,243,208,0.84)'; warping = true; warpX = 12;
             } else { // warp-high
-                count = 55; color = 'rgba(200,250,230,0.9)';  warping = true; warpX = 8.0;
+                count = 225; color = 'rgba(200,250,230,0.9)';  warping = true; warpX = 18;
             }
 
             for (let i = 0; i < count; i++) {
                 const s = document.createElement('span');
                 s.className = 'sparkle' + (warping ? ' warping' : '');
-                s.style.left   = (3 + Math.random() * 94) + '%';
-                s.style.top    = (3 + Math.random() * 94) + '%';
-                const sz = (warping ? 0.8 + Math.random() * 1.6 : 1 + Math.random() * 2.5).toFixed(1);
-                s.style.width  = sz + 'px';
+                s.style.left   = warping ? '50%' : (3 + Math.random() * 94) + '%';
+                s.style.top    = warping ? '50%' : (3 + Math.random() * 94) + '%';
+                const sz = (warping ? 2 + Math.random() * 8 : 2 + Math.random() * 4).toFixed(1);
+                s.style.width  = warping ? '1px' : sz + 'px';
                 s.style.height = sz + 'px';
-                const baseDur = warping ? 0.45 + Math.random() * 1.2 : 0.9 + Math.random() * 2.2;
+                const warpSpeed = newState === 'warp-high' ? 0.25 + Math.random() * 0.45
+                               : newState === 'warp-med'  ? 0.35 + Math.random() * 0.65
+                               :                            0.5  + Math.random() * 0.9;
+                const baseDur = warping ? warpSpeed : 0.9 + Math.random() * 2.2;
                 s.style.setProperty('--dur',         baseDur.toFixed(2) + 's');
                 s.style.setProperty('--delay',       (-Math.random() * (warping ? 2 : 3)).toFixed(2) + 's');
                 s.style.setProperty('--spark-color', color);
                 if (warping) {
-                    s.style.setProperty('--angle', (Math.random() * 360).toFixed(1) + 'deg');
-                    s.style.setProperty('--wx',    (warpX * (0.5 + Math.random())).toFixed(1));
+                    s.style.setProperty('--angle',   (Math.random() * 360).toFixed(1) + 'deg');
+                    s.style.setProperty('--wx',      (warpX * (0.5 + Math.random())).toFixed(1));
+                    s.style.setProperty('--peak-op', (0.45 + Math.random() * 0.55).toFixed(2));
+                    s.style.setProperty('--start-op', Math.random() < 0.2 ? (0.3 + Math.random() * 0.5).toFixed(2) : '0');
+                    const travel = 350 + Math.random() * 450;
+                    s.style.setProperty('--travel',  travel.toFixed(0) + 'px');
+                    s.style.setProperty('--travel2', (travel * 1.4).toFixed(0) + 'px');
                 }
                 elSparkleField.appendChild(s);
             }
@@ -904,17 +912,19 @@
             } else if (score < 82) {
                 // Medium green — crisper pulse from here
                 bg       = 'linear-gradient(90deg,#15803d,#22c55e,#4ade80,#22c55e,#15803d)';
-                shadow   = '0 0 6px 1px rgba(74,222,128,0.8),'
-                         + '0 0 16px 3px rgba(34,197,94,0.5),'
-                         + '0 0 28px 5px rgba(22,163,74,0.22)';
+                shadow   = '0 0 8px 2px rgba(74,222,128,0.9),'
+                         + '0 0 20px 5px rgba(34,197,94,0.6),'
+                         + '0 0 36px 8px rgba(22,163,74,0.3),'
+                         + '0 0 50px 10px rgba(22,163,74,0.12)';
                 dur      = '1.1s'; tintRgb = '34,197,94'; animName = 'crispPulse';
             } else {
                 // Amazing — mint center (no white), sharp intense glow
                 bg       = 'linear-gradient(90deg,#22c55e,#4ade80,#a7f3d0,#4ade80,#22c55e)';
-                shadow   = '0 0 6px 1px rgba(134,239,172,0.9),'
-                         + '0 0 14px 3px rgba(74,222,128,0.65),'
-                         + '0 0 26px 5px rgba(34,197,94,0.36),'
-                         + '0 0 42px 7px rgba(22,163,74,0.16)';
+                shadow   = '0 0 8px 2px rgba(134,239,172,0.95),'
+                         + '0 0 18px 5px rgba(74,222,128,0.78),'
+                         + '0 0 34px 8px rgba(34,197,94,0.45),'
+                         + '0 0 52px 11px rgba(22,163,74,0.22),'
+                         + '0 0 70px 14px rgba(22,163,74,0.08)';
                 dur      = '0.65s'; tintRgb = '80,240,120'; animName = 'crispPulse';
             }
 
