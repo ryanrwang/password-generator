@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add index.html)",
+      "Bash(git commit:*)",
+      "Bash(git push)",
+      "Bash(gh run list --limit 5)",
+      "Bash(git checkout -b feature/mvp)",
+      "Bash(git add index.html .claude/settings.local.json)"
+    ]
+  }
+}

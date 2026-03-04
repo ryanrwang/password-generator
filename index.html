@@ -2,24 +2,351 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Password Generator</title>
     <style>
+        *, *::before, *::after { box-sizing: border-box; }
+
         body {
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
             margin: 0;
             background: #1a1a2e;
             font-family: Arial, sans-serif;
+            color: #e0e0e0;
         }
+
+        .card {
+            background: #16213e;
+            border: 1px solid #2d2d5e;
+            border-radius: 12px;
+            padding: 2rem;
+            width: 100%;
+            max-width: 480px;
+            margin: 1rem;
+        }
+
         h1 {
             color: #e0e0e0;
-            font-size: 3rem;
+            font-size: 1.8rem;
+            margin: 0 0 1.5rem 0;
+            text-align: center;
         }
+
+        /* Output row */
+        .output-row {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        #password {
+            flex: 1;
+            background: #0f0f23;
+            border: 1px solid #2d2d5e;
+            border-radius: 6px;
+            color: #e0e0e0;
+            font-size: 1rem;
+            font-family: monospace;
+            padding: 0.6rem 0.8rem;
+            outline: none;
+            cursor: default;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        #copy-btn {
+            background: #2d2d5e;
+            border: 1px solid #3d3d7e;
+            border-radius: 6px;
+            color: #e0e0e0;
+            cursor: pointer;
+            font-size: 0.9rem;
+            padding: 0.6rem 1rem;
+            transition: background 0.15s, color 0.15s;
+            white-space: nowrap;
+        }
+
+        #copy-btn:hover { background: #3d3d7e; }
+        #copy-btn.copied { background: #2cb67d; color: #fff; border-color: #2cb67d; }
+
+        /* Strength indicator */
+        .strength-wrap {
+            margin-bottom: 1.25rem;
+        }
+
+        .strength-bar-track {
+            height: 6px;
+            background: #0f0f23;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 0.3rem;
+        }
+
+        #strength-bar {
+            height: 100%;
+            width: 0%;
+            border-radius: 3px;
+            transition: width 0.3s, background 0.3s;
+        }
+
+        #strength-label {
+            font-size: 0.78rem;
+            color: #888;
+        }
+
+        /* Options */
+        .option-row {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .option-row label {
+            font-size: 0.9rem;
+            white-space: nowrap;
+        }
+
+        #length-num {
+            width: 3.5rem;
+            background: #0f0f23;
+            border: 1px solid #2d2d5e;
+            border-radius: 6px;
+            color: #e0e0e0;
+            font-size: 0.9rem;
+            padding: 0.3rem 0.4rem;
+            text-align: center;
+            outline: none;
+        }
+
+        #length-slider {
+            flex: 1;
+            accent-color: #7f5af0;
+            cursor: pointer;
+        }
+
+        .checkboxes {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem 1rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .checkboxes label {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.9rem;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .checkboxes input[type="checkbox"] {
+            accent-color: #7f5af0;
+            width: 15px;
+            height: 15px;
+            cursor: pointer;
+        }
+
+        #validation-msg {
+            color: #e53e3e;
+            font-size: 0.82rem;
+            margin-bottom: 0.75rem;
+            min-height: 1.1em;
+        }
+
+        #generate-btn {
+            width: 100%;
+            background: #7f5af0;
+            border: none;
+            border-radius: 6px;
+            color: #fff;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: bold;
+            padding: 0.75rem;
+            transition: background 0.15s;
+        }
+
+        #generate-btn:hover { background: #6b46e0; }
+        #generate-btn:active { background: #5a35cf; }
     </style>
 </head>
 <body>
-    <h1>Password Generator !!!</h1>
+    <div class="card">
+        <h1>Password Generator</h1>
+
+        <div class="output-row">
+            <input id="password" type="text" readonly>
+            <button id="copy-btn">Copy</button>
+        </div>
+
+        <div class="strength-wrap">
+            <div class="strength-bar-track">
+                <div id="strength-bar"></div>
+            </div>
+            <span id="strength-label"></span>
+        </div>
+
+        <div class="option-row">
+            <label>Length: <input id="length-num" type="number" min="4" max="64" value="16"></label>
+            <input id="length-slider" type="range" min="4" max="64" value="16">
+        </div>
+
+        <div class="checkboxes">
+            <label><input type="checkbox" id="opt-upper" checked> Uppercase (A–Z)</label>
+            <label><input type="checkbox" id="opt-lower" checked> Lowercase (a–z)</label>
+            <label><input type="checkbox" id="opt-numbers" checked> Numbers (0–9)</label>
+            <label><input type="checkbox" id="opt-symbols"> Symbols (!@#…)</label>
+        </div>
+
+        <div id="validation-msg"></div>
+
+        <button id="generate-btn">Generate</button>
+    </div>
+
+    <script>
+        const SETS = {
+            upper:   'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+            lower:   'abcdefghijklmnopqrstuvwxyz',
+            numbers: '0123456789',
+            symbols: '!@#$%^&*()-_=+[]{}|;:,.<>?'
+        };
+
+        const elPassword     = document.getElementById('password');
+        const elCopyBtn      = document.getElementById('copy-btn');
+        const elStrengthBar  = document.getElementById('strength-bar');
+        const elStrengthLabel= document.getElementById('strength-label');
+        const elLengthNum    = document.getElementById('length-num');
+        const elLengthSlider = document.getElementById('length-slider');
+        const elValidation   = document.getElementById('validation-msg');
+        const elGenerateBtn  = document.getElementById('generate-btn');
+
+        const checkboxes = {
+            upper:   document.getElementById('opt-upper'),
+            lower:   document.getElementById('opt-lower'),
+            numbers: document.getElementById('opt-numbers'),
+            symbols: document.getElementById('opt-symbols')
+        };
+
+        function cryptoRandInt(max) {
+            const arr = new Uint32Array(1);
+            crypto.getRandomValues(arr);
+            return arr[0] % max;
+        }
+
+        function getEnabledSets() {
+            return Object.keys(checkboxes).filter(k => checkboxes[k].checked);
+        }
+
+        function generatePassword(length, enabledKeys) {
+            if (enabledKeys.length === 0) return null;
+
+            // Guarantee at least one char from each enabled set
+            const guaranteed = enabledKeys.map(k => {
+                const s = SETS[k];
+                return s[cryptoRandInt(s.length)];
+            });
+
+            // Fill remaining positions from the combined pool
+            const pool = enabledKeys.map(k => SETS[k]).join('');
+            const remaining = Array.from({ length: length - guaranteed.length }, () =>
+                pool[cryptoRandInt(pool.length)]
+            );
+
+            // Shuffle all characters
+            const all = [...guaranteed, ...remaining];
+            for (let i = all.length - 1; i > 0; i--) {
+                const j = cryptoRandInt(i + 1);
+                [all[i], all[j]] = [all[j], all[i]];
+            }
+
+            return all.join('');
+        }
+
+        function getStrength(length, typeCount) {
+            if (typeCount === 0) return null;
+            if (typeCount === 1 || length < 8) return 'weak';
+            if (typeCount === 4 && length >= 16) return 'strong';
+            if (typeCount >= 3 && length >= 12) return 'strong';
+            if (length >= 8) return 'medium';
+            return 'weak';
+        }
+
+        function updateStrengthUI(strength) {
+            const config = {
+                weak:   { width: '33%',  color: '#e53e3e', label: 'Weak' },
+                medium: { width: '66%',  color: '#f6ad55', label: 'Medium' },
+                strong: { width: '100%', color: '#2cb67d', label: 'Strong' },
+            };
+            if (!strength) {
+                elStrengthBar.style.width = '0%';
+                elStrengthLabel.textContent = '';
+                return;
+            }
+            const c = config[strength];
+            elStrengthBar.style.width = c.width;
+            elStrengthBar.style.background = c.color;
+            elStrengthLabel.textContent = c.label;
+            elStrengthLabel.style.color = c.color;
+        }
+
+        function generate() {
+            const length = parseInt(elLengthNum.value, 10);
+            const enabled = getEnabledSets();
+
+            if (enabled.length === 0) {
+                elValidation.textContent = 'Select at least one character type.';
+                elPassword.value = '';
+                updateStrengthUI(null);
+                return;
+            }
+            elValidation.textContent = '';
+
+            const password = generatePassword(length, enabled);
+            elPassword.value = password;
+            updateStrengthUI(getStrength(length, enabled.length));
+        }
+
+        // Sync slider <-> number input
+        elLengthSlider.addEventListener('input', () => {
+            elLengthNum.value = elLengthSlider.value;
+            generate();
+        });
+
+        elLengthNum.addEventListener('input', () => {
+            let v = parseInt(elLengthNum.value, 10);
+            if (isNaN(v)) return;
+            v = Math.min(64, Math.max(4, v));
+            elLengthSlider.value = v;
+            elLengthNum.value = v;
+            generate();
+        });
+
+        // Regenerate on checkbox change
+        Object.values(checkboxes).forEach(cb => cb.addEventListener('change', generate));
+
+        // Copy to clipboard
+        elCopyBtn.addEventListener('click', () => {
+            if (!elPassword.value) return;
+            navigator.clipboard.writeText(elPassword.value).then(() => {
+                elCopyBtn.textContent = 'Copied!';
+                elCopyBtn.classList.add('copied');
+                setTimeout(() => {
+                    elCopyBtn.textContent = 'Copy';
+                    elCopyBtn.classList.remove('copied');
+                }, 2000);
+            });
+        });
+
+        // Generate button
+        elGenerateBtn.addEventListener('click', generate);
+
+        // Generate on load
+        generate();
+    </script>
 </body>
 </html>
