@@ -11,87 +11,104 @@
 </head>
 <body>
 
-    <!-- TOP: password display -->
-    <div class="top-panel">
+    <!-- Full-screen password display -->
+    <div class="fullscreen-display">
         <div class="copy-tooltip" id="copy-tooltip">Copied!</div>
-        <div class="password-wrap">
-            <div class="password-display" id="password"></div>
+        <div class="password-content">
+            <div class="password-wrap">
+                <div class="password-display" id="password"></div>
+            </div>
+            <div class="strength-wrap">
+                <div class="strength-bar-track"><div id="strength-bar"></div></div>
+            </div>
+            <button id="copy-btn" class="btn btn-secondary">Copy</button>
         </div>
-        <div class="strength-wrap">
-            <div class="strength-bar-track"><div id="strength-bar"></div></div>
-        </div>
-        <button id="copy-btn" class="btn btn-secondary">Copy</button>
     </div>
 
-    <!-- BOTTOM: options -->
-    <div class="bottom-panel">
-        <div class="options-inner">
+    <!-- Pull-up settings card -->
+    <div class="settings-card open" id="settings-card">
+        <div class="settings-card-handle" id="settings-handle">
+            <span class="handle-bar"></span>
+            <span class="handle-chevron"></span>
+        </div>
+        <div class="settings-card-content">
+            <div class="options-inner">
 
-            <!-- Length card -->
-            <div class="type-card" id="card-length">
-                <div class="length-inner">
-                    <div class="length-header">
-                        <span class="type-label">Length</span>
-                        <input id="length-num" type="number" min="4" max="64" value="16">
+                <!-- Length card -->
+                <div class="type-card" id="card-length">
+                    <div class="length-inner">
+                        <div class="length-header">
+                            <span class="type-label">Length</span>
+                            <div class="length-input-wrap">
+                                <button class="length-arrow arrow-left" id="length-arrow-down" aria-label="Decrease length">&#8249;</button>
+                                <input id="length-num" type="number" min="4" max="64" value="16">
+                                <button class="length-arrow arrow-right" id="length-arrow-up" aria-label="Increase length">&#8250;</button>
+                            </div>
+                        </div>
+                        <input id="length-slider" type="range" min="4" max="64" value="16">
                     </div>
-                    <input id="length-slider" type="range" min="4" max="64" value="16">
-                </div>
-            </div>
-
-            <!-- Character type cards -->
-            <div class="type-cards">
-
-                <div class="type-card active" id="card-upper">
-                    <label class="type-card-header">
-                        <div class="type-info">
-                            <span class="type-label">Uppercase</span>
-                            <span class="type-sub">A–Z</span>
-                        </div>
-                        <div class="toggle-switch">
-                            <input type="checkbox" id="opt-upper" checked>
-                            <div class="toggle-track"></div>
-                        </div>
-                    </label>
                 </div>
 
-                <div class="type-card active" id="card-lower">
-                    <label class="type-card-header">
-                        <div class="type-info">
-                            <span class="type-label">Lowercase</span>
-                            <span class="type-sub">a–z</span>
-                        </div>
-                        <div class="toggle-switch">
-                            <input type="checkbox" id="opt-lower" checked>
-                            <div class="toggle-track"></div>
-                        </div>
-                    </label>
-                </div>
+                <!-- Character type cards -->
+                <div class="type-cards">
 
-                <div class="type-card active" id="card-numbers">
-                    <label class="type-card-header">
-                        <div class="type-info">
-                            <span class="type-label">Numbers</span>
-                            <span class="type-sub">0–9</span>
-                        </div>
-                        <div class="toggle-switch">
-                            <input type="checkbox" id="opt-numbers" checked>
-                            <div class="toggle-track"></div>
-                        </div>
-                    </label>
-                </div>
+                    <div class="type-card active" id="card-upper">
+                        <label class="type-card-header">
+                            <div class="type-info">
+                                <span class="type-label">Uppercase</span>
+                                <span class="type-sub">A–Z</span>
+                            </div>
+                            <div class="toggle-switch">
+                                <input type="checkbox" id="opt-upper" checked>
+                                <div class="toggle-track"></div>
+                            </div>
+                        </label>
+                    </div>
 
-                <!-- Symbols — full width, expandable -->
-                <div class="type-card" id="card-symbols">
-                    <label class="type-card-header">
-                        <div class="type-info">
-                            <span class="type-label">Symbols</span>
-                            <span class="type-sub">!@#…</span>
+                    <div class="type-card active" id="card-lower">
+                        <label class="type-card-header">
+                            <div class="type-info">
+                                <span class="type-label">Lowercase</span>
+                                <span class="type-sub">a–z</span>
+                            </div>
+                            <div class="toggle-switch">
+                                <input type="checkbox" id="opt-lower" checked>
+                                <div class="toggle-track"></div>
+                            </div>
+                        </label>
+                    </div>
+
+                    <div class="type-card active" id="card-numbers">
+                        <label class="type-card-header">
+                            <div class="type-info">
+                                <span class="type-label">Numbers</span>
+                                <span class="type-sub">0–9</span>
+                            </div>
+                            <div class="toggle-switch">
+                                <input type="checkbox" id="opt-numbers" checked>
+                                <div class="toggle-track"></div>
+                            </div>
+                        </label>
+                    </div>
+
+                    <!-- Symbols — expandable options are a sibling for grid layout -->
+                    <div class="type-card" id="card-symbols">
+                        <div class="type-card-header" id="symbols-header">
+                            <div class="type-info">
+                                <span class="type-label">Symbols</span>
+                                <span class="type-sub">!@#…</span>
+                            </div>
+                            <div class="type-card-actions">
+                                <button class="sym-settings-btn" id="sym-settings-btn" type="button" aria-label="Symbol settings">&#9881;</button>
+                                <label class="toggle-switch" for="opt-symbols">
+                                    <input type="checkbox" id="opt-symbols">
+                                    <div class="toggle-track"></div>
+                                </label>
+                            </div>
                         </div>
-                        <div class="toggle-switch">
-                            <input type="checkbox" id="opt-symbols">
-                            <div class="toggle-track"></div>
-                        </div>
-                    </label>
+                    </div>
+
+                    <!-- Symbol options — grid sibling so it can span full width independently -->
                     <div class="symbol-options" id="symbol-options">
                         <div class="sym-opts-inner">
 
@@ -104,7 +121,7 @@
                             </div>
 
                             <div class="sym-opt-row">
-                                <input type="checkbox" id="opt-sym-first" checked>
+                                <input type="checkbox" id="opt-sym-first">
                                 <label for="opt-sym-first">Allow as first character</label>
                             </div>
 
@@ -119,13 +136,13 @@
 
                         </div>
                     </div>
-                </div>
 
-            </div><!-- /type-cards -->
+                </div><!-- /type-cards -->
 
-            <div id="validation-msg"></div>
-            <button id="generate-btn" class="btn btn-primary">Generate</button>
+                <div id="validation-msg"></div>
+                <button id="generate-btn" class="btn btn-primary">Generate</button>
 
+            </div>
         </div>
     </div>
 
