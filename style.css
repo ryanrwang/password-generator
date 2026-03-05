@@ -17,38 +17,41 @@ body {
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    padding: 32px;
+    padding: 32px 128px;
     background: linear-gradient(160deg, #12122a 0%, #1a1a2e 100%);
     overflow: hidden;
     transition: background 0.65s ease;
     isolation: isolate;
 }
 
-/* Tooltip floats above password, pinned to top of panel */
-.copy-tooltip {
-    position: absolute;
-    top: 16px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(127, 90, 240, 0.93);
-    color: #fff;
-    padding: 4px 16px;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 700;
+/* ── Impact effect on generate ── */
+.password-display.impact {
+    animation: impactPulse 0.35s ease-out;
+}
+@keyframes impactPulse {
+    0%   { transform: scale(1); }
+    20%  { transform: scale(1.06); filter: brightness(1.3); }
+    50%  { transform: scale(0.97); }
+    75%  { transform: scale(1.01); }
+    100% { transform: scale(1); }
+}
+
+/* ── Copy sparks ── */
+.copy-spark {
+    position: fixed;
+    width: var(--spark-size, 5px);
+    height: var(--spark-size, 5px);
+    border-radius: 50%;
     pointer-events: none;
-    opacity: 0;
-    white-space: nowrap;
-    letter-spacing: 0.05em;
-    z-index: 2;
+    z-index: 100;
+    animation: sparkFly var(--spark-dur, 0.7s) ease-out forwards;
+    box-shadow: 0 0 6px 1px var(--spark-glow, rgba(251,191,36,0.6));
 }
-@keyframes tooltipFade {
-    0%   { opacity: 0; transform: translateX(-50%) translateY(-4px); }
-    15%  { opacity: 1; transform: translateX(-50%) translateY(0); }
-    75%  { opacity: 1; transform: translateX(-50%) translateY(0); }
-    100% { opacity: 0; transform: translateX(-50%) translateY(-4px); }
+@keyframes sparkFly {
+    0%   { opacity: 1; transform: translate(0, 0) scale(1); }
+    60%  { opacity: 0.8; }
+    100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(0.2); }
 }
-.copy-tooltip.show { animation: tooltipFade 1.6s ease forwards; }
 
 /* Password */
 .password-wrap { width: 100%; }
@@ -63,6 +66,8 @@ body {
     overflow: hidden;
     cursor: pointer;
     transition: filter 0.15s;
+    user-select: none;
+    -webkit-user-select: none;
 }
 .password-display:hover { filter: brightness(1.12); }
 
@@ -87,13 +92,14 @@ body {
 .strength-bar-track {
     width: 100%;
     height: 8px;
-    background: rgba(255,255,255,0.04);
+    background: transparent;
     border-radius: 4px;
     display: flex;
     justify-content: center;
     overflow: visible;
 }
 #strength-bar {
+    position: relative;
     height: 100%;
     width: 0px;
     border-radius: 4px;
@@ -111,6 +117,36 @@ body {
     0%, 100% { filter: brightness(1)    saturate(1.05); }
     30%      { filter: brightness(1.22) saturate(1.18); }
     65%      { filter: brightness(0.9)  saturate(0.96); }
+}
+
+/* ── Electric sparks on strength bar ── */
+.strength-sparks {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: -2px;
+    bottom: -2px;
+    pointer-events: none;
+    overflow: visible;
+    transition: opacity 0.5s ease;
+}
+.elec-spark {
+    position: absolute;
+    width: 2px;
+    height: var(--spark-h, 4px);
+    background: var(--spark-color, #60a5fa);
+    border-radius: 1px;
+    opacity: 0;
+    pointer-events: none;
+    box-shadow: 0 0 6px 2px var(--spark-color, #60a5fa);
+    animation: elecSpark var(--dur, 0.3s) ease-out infinite var(--delay, 0s);
+}
+@keyframes elecSpark {
+    0%   { opacity: 0; transform: translateY(0) scaleY(0.5); }
+    10%  { opacity: 1; transform: translateY(calc(var(--travel-y) * 0.15)) scaleY(1.2); }
+    35%  { opacity: 0.3; transform: translateY(calc(var(--travel-y) * 0.5)) scaleY(0.5); }
+    55%  { opacity: 0.8; transform: translateY(calc(var(--travel-y) * 0.4)) scaleY(1); }
+    100% { opacity: 0; transform: translateY(var(--travel-y)) scaleY(0.1); }
 }
 
 /* ── Password content wrapper (shifts to stay centered above card) ── */
@@ -182,10 +218,10 @@ body {
 /* Secondary — neutral ghost */
 .btn-secondary {
     background: rgba(255, 255, 255, 0.05);
-    color: #7a7a99;
+    color: #d0d7ea;
     border-color: rgba(255, 255, 255, 0.11);
 }
-.btn-secondary:hover  { background: rgba(255, 255, 255, 0.09); color: #a8a8cc; border-color: rgba(255,255,255,0.2); }
+.btn-secondary:hover  { background: rgba(255, 255, 255, 0.09); color: #e8edf5; border-color: rgba(255,255,255,0.2); }
 .btn-secondary.copied { border-color: #2cb67d; color: #2cb67d; background: rgba(44,182,125,0.12); }
 
 /* ── SETTINGS CARD (centered glass sheet) ── */
@@ -264,6 +300,7 @@ body {
 /* Mobile: hide toggle switches — cards themselves act as tappable toggles */
 @media (max-width: 768px) {
     .toggle-switch { display: none; }
+    .fullscreen-display { padding: 32px; }
 }
 
 /* Disable transition during drag */

@@ -7,7 +7,6 @@ const CHAR_SETS = {
 const HTML_ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' };
 
 const elPassword      = document.getElementById('password');
-const elTooltip       = document.getElementById('copy-tooltip');
 const elCopyBtn       = document.getElementById('copy-btn');
 const elStrengthBar   = document.getElementById('strength-bar');
 const elTopPanel      = document.querySelector('.fullscreen-display');
@@ -17,6 +16,12 @@ const elSparkleField = document.createElement('div');
 elSparkleField.className = 'sparkle-field';
 elSparkleField.style.opacity = '0';
 elTopPanel.insertBefore(elSparkleField, elTopPanel.firstChild);
+
+// Electric sparks container — child of strength bar so they follow its width
+const elElecSparks = document.createElement('div');
+elElecSparks.className = 'strength-sparks';
+elElecSparks.style.opacity = '0';
+elStrengthBar.appendChild(elElecSparks);
 
 const elLengthNum     = document.getElementById('length-num');
 const elLengthSlider  = document.getElementById('length-slider');
@@ -37,6 +42,7 @@ const checkboxes = {
 
 let currentPassword = '';
 let sparkleState    = null;   // null | 'green' | 'amazing' | 'warp-low' | 'warp-med' | 'warp-high'
+let elecSparkState  = null;   // null | 'low' | 'med' | 'high'
 
 // ── Slider fill gradient ──
 function updateSliderTrack(slider, color) {
@@ -71,9 +77,7 @@ let copyTimer = null;
 function copyPassword() {
     if (!currentPassword) return;
     navigator.clipboard.writeText(currentPassword).then(() => {
-        elTooltip.classList.remove('show');
-        void elTooltip.offsetWidth;
-        elTooltip.classList.add('show');
+        spawnCopySparks();
         elCopyBtn.textContent = 'Copied!';
         elCopyBtn.classList.add('copied');
         clearTimeout(copyTimer);
@@ -85,6 +89,48 @@ function copyPassword() {
 }
 elPassword.addEventListener('click', copyPassword);
 elCopyBtn.addEventListener('click',  copyPassword);
+
+// ── Impact effect on generate ──
+function triggerImpact() {
+    elPassword.classList.remove('impact');
+    void elPassword.offsetWidth;
+    elPassword.classList.add('impact');
+}
+
+// ── Copy sparks (radiate from each character) ──
+function spawnCopySparks() {
+    const spans = elPassword.querySelectorAll('span:not(.pw-error)');
+    if (!spans.length) return;
+    const maxTotal = 50;
+    const perChar = Math.max(1, Math.ceil(maxTotal / spans.length));
+    let count = 0;
+    const colors = ['#fbbf24', '#f59e0b', '#fb923c', '#fcd34d', '#fff'];
+    const glows  = ['rgba(251,191,36,0.6)', 'rgba(245,158,11,0.6)', 'rgba(251,146,60,0.6)', 'rgba(252,211,77,0.6)', 'rgba(255,255,255,0.5)'];
+    for (const span of spans) {
+        if (count >= maxTotal) break;
+        const rect = span.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        for (let j = 0; j < perChar && count < maxTotal; j++) {
+            const spark = document.createElement('div');
+            spark.className = 'copy-spark';
+            const angle = Math.random() * Math.PI * 2;
+            const dist = 50 + Math.random() * 130;
+            spark.style.setProperty('--dx', (Math.cos(angle) * dist).toFixed(1) + 'px');
+            spark.style.setProperty('--dy', (Math.sin(angle) * dist).toFixed(1) + 'px');
+            spark.style.left = (cx + (Math.random() - 0.5) * rect.width * 0.3) + 'px';
+            spark.style.top = (cy + (Math.random() - 0.5) * rect.height * 0.3) + 'px';
+            spark.style.setProperty('--spark-size', (3 + Math.random() * 5).toFixed(1) + 'px');
+            spark.style.setProperty('--spark-dur', (0.5 + Math.random() * 0.5).toFixed(2) + 's');
+            const ci = Math.floor(Math.random() * colors.length);
+            spark.style.background = colors[ci];
+            spark.style.setProperty('--spark-glow', glows[ci]);
+            document.body.appendChild(spark);
+            spark.addEventListener('animationend', () => spark.remove());
+            count++;
+        }
+    }
+}
 
 // ── Card toggles ──
 const elSymSettingsBtn = document.getElementById('sym-settings-btn');
@@ -305,6 +351,7 @@ function updateStrengthUI(score) {
         elStrengthBar.style.animationName = 'none';
         elTopPanel.style.background       = BASE_BG;
         updateSparkles(null, 0);
+        updateElecSparks(0);
         return;
     }
 
@@ -314,43 +361,42 @@ function updateStrengthUI(score) {
 
     let bg, shadow, dur, tintRgb, animName = 'flamePulse';
 
-    if (score < 10) {
-        bg       = 'linear-gradient(90deg,#1a0505,#5c1111,#7f1d1d,#5c1111,#1a0505)';
-        shadow   = '0 0 4px 1px rgba(127,29,29,0.4)';
-        dur      = '3.5s'; tintRgb = '120,20,20';
-    } else if (score < 22) {
-        bg       = 'linear-gradient(90deg,#7f1d1d,#b91c1c,#dc2626,#b91c1c,#7f1d1d)';
-        shadow   = '0 0 6px 2px rgba(185,28,28,0.5),'
-                 + '0 0 14px 3px rgba(127,29,29,0.22)';
-        dur      = '3s'; tintRgb = '185,28,28';
-    } else if (score < 34) {
+    // Color based on password length (red at 4 → orange at 10 → green at 16+)
+    if (len <= 5) {
+        // Bright red (4 and 5 similar brightness)
+        bg       = 'linear-gradient(90deg,#b91c1c,#dc2626,#ef4444,#dc2626,#b91c1c)';
+        shadow   = '0 0 6px 2px rgba(239,68,68,0.5),'
+                 + '0 0 14px 3px rgba(185,28,28,0.22)';
+        dur      = '3.5s'; tintRgb = '220,38,38';
+    } else if (len <= 7) {
+        // Red-orange
         bg       = 'linear-gradient(90deg,#991b1b,#dc2626,#ea580c,#dc2626,#991b1b)';
         shadow   = '0 0 7px 2px rgba(220,38,38,0.52),'
                  + '0 0 18px 4px rgba(153,27,27,0.24)';
-        dur      = '2.5s'; tintRgb = '210,55,20';
-    } else if (score < 40) {
+        dur      = '3s'; tintRgb = '210,55,20';
+    } else if (len <= 9) {
         // Orange
         bg       = 'linear-gradient(90deg,#c2410c,#ea580c,#f97316,#ea580c,#c2410c)';
         shadow   = '0 0 8px 2px rgba(234,88,12,0.54),'
                  + '0 0 20px 4px rgba(194,65,12,0.26),'
                  + '0 0 32px 5px rgba(127,29,29,0.1)';
-        dur      = '2s'; tintRgb = '234,88,12';
-    } else if (score < 44) {
-        // Warm golden-amber — brief bridge (~length 12–13)
+        dur      = '2.5s'; tintRgb = '234,88,12';
+    } else if (len <= 11) {
+        // Golden amber — peak orange at length 10
         bg       = 'linear-gradient(90deg,#d97706,#f59e0b,#fbbf24,#f59e0b,#d97706)';
         shadow   = '0 0 9px 3px rgba(251,191,36,0.54),'
                  + '0 0 22px 5px rgba(245,158,11,0.28),'
                  + '0 0 38px 6px rgba(217,119,6,0.12)';
-        dur      = '1.7s'; tintRgb = '245,158,11';
-    } else if (score < 64) {
-        // Lime / yellow-green — soft green starts ~length 14
+        dur      = '2s'; tintRgb = '245,158,11';
+    } else if (len <= 13) {
+        // Lime / yellow-green
         bg       = 'linear-gradient(90deg,#65a30d,#84cc16,#a3e635,#84cc16,#65a30d)';
         shadow   = '0 0 9px 3px rgba(163,230,53,0.52),'
                  + '0 0 22px 5px rgba(132,204,22,0.28),'
                  + '0 0 38px 6px rgba(101,163,13,0.12)';
         dur      = '1.4s'; tintRgb = '132,204,22';
-    } else if (score < 82) {
-        // Medium green — crisper pulse from here
+    } else if (len <= 15) {
+        // Medium green — crisper pulse
         bg       = 'linear-gradient(90deg,#15803d,#22c55e,#4ade80,#22c55e,#15803d)';
         shadow   = '0 0 8px 2px rgba(74,222,128,0.9),'
                  + '0 0 20px 5px rgba(34,197,94,0.6),'
@@ -358,7 +404,7 @@ function updateStrengthUI(score) {
                  + '0 0 50px 10px rgba(22,163,74,0.12)';
         dur      = '1.1s'; tintRgb = '34,197,94'; animName = 'crispPulse';
     } else {
-        // Amazing — mint center (no white), sharp intense glow
+        // Full green (16+) — bright glow
         bg       = 'linear-gradient(90deg,#22c55e,#4ade80,#a7f3d0,#4ade80,#22c55e)';
         shadow   = '0 0 8px 2px rgba(134,239,172,0.95),'
                  + '0 0 18px 5px rgba(74,222,128,0.78),'
@@ -393,6 +439,52 @@ function updateStrengthUI(score) {
     elTopPanel.style.background = bgParts.join(', ');
 
     updateSparkles(score, len);
+    updateElecSparks(len);
+}
+
+// ── Electric sparks on strength bar (length 40+) ──
+function updateElecSparks(len) {
+    let newState;
+    if      (len >= 56) newState = 'high';
+    else if (len >= 48) newState = 'med';
+    else if (len >= 40) newState = 'low';
+    else                newState = null;
+
+    if (newState === elecSparkState) return;
+    elecSparkState = newState;
+
+    elElecSparks.innerHTML = '';
+    if (!newState) { elElecSparks.style.opacity = '0'; return; }
+
+    let count, speedBase;
+    if      (newState === 'low')  { count = 20; speedBase = 0.2;  }
+    else if (newState === 'med')  { count = 50; speedBase = 0.12; }
+    else                          { count = 90; speedBase = 0.07; }
+
+    const elecColors = ['#60a5fa', '#93c5fd', '#3b82f6', '#a5f3fc', '#e0f2fe', '#fff'];
+    for (let i = 0; i < count; i++) {
+        const spark = document.createElement('span');
+        spark.className = 'elec-spark';
+        spark.style.left = (Math.random() * 100) + '%';
+        const goUp = Math.random() > 0.5;
+        const travel = 3 + Math.random() * 10;
+        spark.style.top = goUp ? '0' : '100%';
+        spark.style.setProperty('--travel-y', (goUp ? -travel : travel) + 'px');
+        spark.style.setProperty('--dur', (speedBase + Math.random() * 0.15).toFixed(2) + 's');
+        spark.style.setProperty('--delay', (-Math.random() * 1.5).toFixed(2) + 's');
+        spark.style.setProperty('--spark-h', (1 + Math.random() * 4).toFixed(1) + 'px');
+        const color = elecColors[Math.floor(Math.random() * elecColors.length)];
+        spark.style.setProperty('--spark-color', color);
+        spark.addEventListener('animationiteration', () => {
+            spark.style.left = (Math.random() * 100) + '%';
+            const up = Math.random() > 0.5;
+            const t = 3 + Math.random() * 10;
+            spark.style.top = up ? '0' : '100%';
+            spark.style.setProperty('--travel-y', (up ? -t : t) + 'px');
+        });
+        elElecSparks.appendChild(spark);
+    }
+    elElecSparks.style.opacity = '1';
 }
 
 // ── Generate ──
@@ -455,7 +547,10 @@ function syncMaxSymMax(len) {
     updateSliderTrack(elMaxSymSlider, '#fb923c');
 }
 
-document.getElementById('generate-btn').addEventListener('click', generate);
+document.getElementById('generate-btn').addEventListener('click', () => {
+    generate();
+    if (currentPassword) triggerImpact();
+});
 
 // ── Settings card toggle ──
 const elSettingsCard   = document.getElementById('settings-card');
