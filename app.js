@@ -529,7 +529,15 @@ elLengthSlider.addEventListener('input', () => {
 });
 elLengthNum.addEventListener('input', () => {
     let v = parseInt(elLengthNum.value, 10);
-    if (isNaN(v)) return;
+    if (isNaN(v) || v < 1) return;
+    elLengthSlider.value = Math.min(64, Math.max(4, v));
+    updateSliderTrack(elLengthSlider, '#7f5af0');
+    syncMaxSymMax(Math.min(64, Math.max(4, v)));
+    generate();
+});
+elLengthNum.addEventListener('blur', () => {
+    let v = parseInt(elLengthNum.value, 10);
+    if (isNaN(v)) v = 16;
     v = Math.min(64, Math.max(4, v));
     elLengthNum.value    = v;
     elLengthSlider.value = v;
