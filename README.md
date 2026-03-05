@@ -1,6 +1,6 @@
 # Password Generator
 
-A visually rich, client-side password generator with real-time strength feedback, animated effects, and full customization.
+A visual client-side password generator with real-time strength feedback, animated effects, and customization. Build with Claude. Personal project to learn Git.
 
 ## Features
 
