@@ -10,7 +10,7 @@ const elPassword      = document.getElementById('password');
 const elTooltip       = document.getElementById('copy-tooltip');
 const elCopyBtn       = document.getElementById('copy-btn');
 const elStrengthBar   = document.getElementById('strength-bar');
-const elTopPanel      = document.querySelector('.top-panel');
+const elTopPanel      = document.querySelector('.fullscreen-display');
 
 // Sparkle field — inserted as first child so z-index: -1 works within panel context
 const elSparkleField = document.createElement('div');
@@ -87,15 +87,39 @@ elPassword.addEventListener('click', copyPassword);
 elCopyBtn.addEventListener('click',  copyPassword);
 
 // ── Card toggles ──
+const elSymSettingsBtn = document.getElementById('sym-settings-btn');
+
 ['upper', 'lower', 'numbers', 'symbols'].forEach(key => {
     const cb   = checkboxes[key];
     const card = document.getElementById(`card-${key}`);
     card.classList.toggle('active', cb.checked);
     cb.addEventListener('change', () => {
         card.classList.toggle('active', cb.checked);
-        if (key === 'symbols') elSymOptions.classList.toggle('visible', cb.checked);
+        if (key === 'symbols') {
+            elSymSettingsBtn.classList.toggle('visible', cb.checked);
+            if (!cb.checked) {
+                elSymOptions.classList.remove('visible');
+                elSymSettingsBtn.classList.remove('active');
+                card.classList.remove('expanded');
+            }
+        }
         generate();
     });
+});
+
+// ── Symbol settings icon — toggles symbol sub-options ──
+const elCardSymbols = document.getElementById('card-symbols');
+elSymSettingsBtn.addEventListener('click', () => {
+    elSymOptions.classList.toggle('visible');
+    const isVis = elSymOptions.classList.contains('visible');
+    elSymSettingsBtn.classList.toggle('active', isVis);
+    elCardSymbols.classList.toggle('expanded', isVis);
+});
+
+// ── Symbols card — click anywhere on header to toggle (like other cards) ──
+document.getElementById('symbols-header').addEventListener('click', (e) => {
+    if (e.target.closest('.sym-settings-btn') || e.target.closest('.toggle-switch')) return;
+    checkboxes.symbols.click();
 });
 
 // ── Symbol chips ──
@@ -379,9 +403,21 @@ function generate() {
         showError('Select at least one character type.');
         updateStrengthUI(null); return;
     }
+    // If symbols enabled but none selected, just exclude symbols
     if (checkboxes.symbols.checked && !getSelectedSymbols()) {
-        showError('Select at least one symbol, or disable Symbols.');
-        updateStrengthUI(null); return;
+        const filtered = enabled.filter(k => k !== 'symbols');
+        if (filtered.length === 0) {
+            showError('Select at least one character type.');
+            updateStrengthUI(null); return;
+        }
+        const pw = generatePassword(length, filtered);
+        if (!pw) {
+            showError('Length too short for selected options.');
+            updateStrengthUI(null); return;
+        }
+        renderPassword(pw);
+        updateStrengthUI(computeStrengthScore(length, filtered));
+        return;
     }
     const pw = generatePassword(length, enabled);
     if (!pw) {
@@ -420,4 +456,138 @@ function syncMaxSymMax(len) {
 }
 
 document.getElementById('generate-btn').addEventListener('click', generate);
+
+// ── Settings card toggle ──
+const elSettingsCard   = document.getElementById('settings-card');
+const elSettingsHandle = document.getElementById('settings-handle');
+
+function updateContentOffset() {
+    const isOpen = elSettingsCard.classList.contains('open');
+    if (isOpen) {
+        const cardH = elSettingsCard.offsetHeight;
+        elTopPanel.style.setProperty('--card-offset', `${-cardH / 2}px`);
+    } else {
+        elTopPanel.style.setProperty('--card-offset', '-24px');
+    }
+}
+
+function openCard() {
+    elSettingsCard.style.transform = '';
+    elSettingsCard.classList.add('open');
+    updateContentOffset();
+}
+function closeCard() {
+    elSettingsCard.style.transform = '';
+    elSettingsCard.classList.remove('open');
+    updateContentOffset();
+}
+
+// ── Mobile drag-to-open/close on handle ──
+let dragDidMove = false;
+let dragState = null;
+
+function getCurrentTranslateY() {
+    return new DOMMatrix(getComputedStyle(elSettingsCard).transform).m42;
+}
+
+function getMaxTranslateY() {
+    return elSettingsCard.offsetHeight - 48;
+}
+
+function onDragMove(e) {
+    if (!dragState) return;
+    e.preventDefault();
+    const touchY = e.touches[0].clientY;
+    const deltaY = touchY - dragState.startY;
+    if (Math.abs(deltaY) > 5) dragState.moved = true;
+    const maxY = getMaxTranslateY();
+    const newY = Math.max(0, Math.min(maxY, dragState.startTranslateY + deltaY));
+    elSettingsCard.style.transform = `translateY(${newY}px)`;
+    const now = Date.now();
+    const dt = now - dragState.lastTime;
+    if (dt > 0) dragState.velocity = (touchY - dragState.lastY) / dt;
+    dragState.lastY = touchY;
+    dragState.lastTime = now;
+}
+
+function onDragEnd() {
+    document.removeEventListener('touchmove', onDragMove);
+    document.removeEventListener('touchend', onDragEnd);
+    if (!dragState) return;
+    const { moved, velocity } = dragState;
+    dragState = null;
+    elSettingsCard.classList.remove('dragging');
+    if (!moved) return; // let click handler deal with taps
+    dragDidMove = true;
+    // Flick detection: fast swipe overrides position
+    if (Math.abs(velocity) > 0.3) {
+        if (velocity > 0) closeCard(); else openCard();
+    } else {
+        const currentY = getCurrentTranslateY();
+        if (currentY > getMaxTranslateY() * 0.4) closeCard(); else openCard();
+    }
+}
+
+elSettingsHandle.addEventListener('touchstart', (e) => {
+    dragState = {
+        startY: e.touches[0].clientY,
+        startTranslateY: getCurrentTranslateY(),
+        lastY: e.touches[0].clientY,
+        lastTime: Date.now(),
+        velocity: 0,
+        moved: false,
+    };
+    elSettingsCard.classList.add('dragging');
+    document.addEventListener('touchmove', onDragMove, { passive: false });
+    document.addEventListener('touchend', onDragEnd);
+}, { passive: true });
+
+elSettingsHandle.addEventListener('click', () => {
+    if (dragDidMove) { dragDidMove = false; return; }
+    if (elSettingsCard.classList.contains('open')) closeCard();
+    else openCard();
+});
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && elSettingsCard.classList.contains('open')) {
+        closeCard();
+    }
+});
+
+// Keep offset in sync when card content resizes (e.g. symbol options expand)
+new ResizeObserver(() => updateContentOffset()).observe(elSettingsCard);
+updateContentOffset();
+
+// ── Custom length arrow buttons ──
+const elArrowDown = document.getElementById('length-arrow-down');
+const elArrowUp   = document.getElementById('length-arrow-up');
+
+function adjustLength(delta) {
+    let v = parseInt(elLengthNum.value, 10);
+    if (isNaN(v)) v = 16;
+    v = Math.min(64, Math.max(4, v + delta));
+    elLengthNum.value    = v;
+    elLengthSlider.value = v;
+    updateSliderTrack(elLengthSlider, '#7f5af0');
+    syncMaxSymMax(v);
+    generate();
+}
+
+// Long-press for rapid adjustment
+let holdTimer, holdInterval;
+function startHold(delta) {
+    adjustLength(delta);
+    holdTimer = setTimeout(() => {
+        holdInterval = setInterval(() => adjustLength(delta), 80);
+    }, 400);
+}
+function stopHold() { clearTimeout(holdTimer); clearInterval(holdInterval); }
+
+elArrowDown.addEventListener('mousedown',  () => startHold(-1));
+elArrowDown.addEventListener('touchstart', (e) => { e.preventDefault(); startHold(-1); });
+elArrowUp.addEventListener('mousedown',    () => startHold(1));
+elArrowUp.addEventListener('touchstart',   (e) => { e.preventDefault(); startHold(1); });
+document.addEventListener('mouseup',  stopHold);
+document.addEventListener('touchend', stopHold);
+
 generate();
