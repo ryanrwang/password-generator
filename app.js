@@ -526,6 +526,7 @@ elLengthSlider.addEventListener('input', () => {
     updateSliderTrack(elLengthSlider, '#7f5af0');
     syncMaxSymMax(+elLengthSlider.value);
     generate();
+    updateArrowStates();
 });
 elLengthNum.addEventListener('input', () => {
     let v = parseInt(elLengthNum.value, 10);
@@ -534,6 +535,7 @@ elLengthNum.addEventListener('input', () => {
     updateSliderTrack(elLengthSlider, '#7f5af0');
     syncMaxSymMax(Math.min(64, Math.max(4, v)));
     generate();
+    updateArrowStates();
 });
 elLengthNum.addEventListener('blur', () => {
     let v = parseInt(elLengthNum.value, 10);
@@ -544,6 +546,7 @@ elLengthNum.addEventListener('blur', () => {
     updateSliderTrack(elLengthSlider, '#7f5af0');
     syncMaxSymMax(v);
     generate();
+    updateArrowStates();
 });
 function syncMaxSymMax(len) {
     elMaxSymSlider.max = len;
@@ -665,6 +668,12 @@ updateContentOffset();
 const elArrowDown = document.getElementById('length-arrow-down');
 const elArrowUp   = document.getElementById('length-arrow-up');
 
+function updateArrowStates() {
+    const v = parseInt(elLengthNum.value, 10);
+    elArrowDown.disabled = v <= 4;
+    elArrowUp.disabled   = v >= 64;
+}
+
 function adjustLength(delta) {
     let v = parseInt(elLengthNum.value, 10);
     if (isNaN(v)) v = 16;
@@ -674,6 +683,7 @@ function adjustLength(delta) {
     updateSliderTrack(elLengthSlider, '#7f5af0');
     syncMaxSymMax(v);
     generate();
+    updateArrowStates();
 }
 
 // Long-press for rapid adjustment
@@ -693,4 +703,5 @@ elArrowUp.addEventListener('touchstart',   (e) => { e.preventDefault(); startHol
 document.addEventListener('mouseup',  stopHold);
 document.addEventListener('touchend', stopHold);
 
+updateArrowStates();
 generate();
