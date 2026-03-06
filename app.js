@@ -26,11 +26,8 @@ elStrengthBar.appendChild(elElecSparks);
 const elLengthNum     = document.getElementById('length-num');
 const elLengthSlider  = document.getElementById('length-slider');
 const elSymOptions    = document.getElementById('symbol-options');
-const elLimitSym      = document.getElementById('opt-limit-sym');
-const elMaxSymNum     = document.getElementById('max-sym-num');
-const elMaxSymSlider  = document.getElementById('max-sym-slider');
-const elMaxSymDisplay = document.getElementById('max-sym-display');
-const elSymFirst      = document.getElementById('opt-sym-first');
+const elSymPctSlider  = document.getElementById('sym-pct-slider');
+const elSymPctDisplay = document.getElementById('sym-pct-display');
 const elSymPicker     = document.getElementById('symbol-picker');
 
 const checkboxes = {
@@ -51,7 +48,7 @@ function updateSliderTrack(slider, color) {
         `linear-gradient(to right, ${color} ${pct}%, #1e1e3a ${pct}%)`;
 }
 updateSliderTrack(elLengthSlider, '#7f5af0');
-updateSliderTrack(elMaxSymSlider, '#fb923c');
+updateSliderTrack(elSymPctSlider, '#fb923c');
 
 // ── Password rendering ──
 function charClass(ch) {
@@ -190,31 +187,12 @@ function getSelectedSymbols() {
         .map(c => c.dataset.sym).join('');
 }
 
-// ── Limit-symbols ──
-elLimitSym.addEventListener('change', () => {
-    elMaxSymNum.disabled    = !elLimitSym.checked;
-    elMaxSymSlider.disabled = !elLimitSym.checked;
-    updateSliderTrack(elMaxSymSlider, '#fb923c');
+// ── Percent symbols ──
+elSymPctSlider.addEventListener('input', () => {
+    elSymPctDisplay.textContent = elSymPctSlider.value + '%';
+    updateSliderTrack(elSymPctSlider, '#fb923c');
     generate();
 });
-elMaxSymNum.addEventListener('input', () => {
-    let v = parseInt(elMaxSymNum.value, 10);
-    if (isNaN(v) || v < 1) v = 1;
-    v = Math.min(v, parseInt(elLengthNum.value, 10));
-    elMaxSymNum.value = v;
-    elMaxSymSlider.value = Math.min(v, parseInt(elMaxSymSlider.max, 10));
-    elMaxSymDisplay.textContent = v;
-    updateSliderTrack(elMaxSymSlider, '#fb923c');
-    generate();
-});
-elMaxSymSlider.addEventListener('input', () => {
-    const v = parseInt(elMaxSymSlider.value, 10);
-    elMaxSymNum.value = v;
-    elMaxSymDisplay.textContent = v;
-    updateSliderTrack(elMaxSymSlider, '#fb923c');
-    generate();
-});
-elSymFirst.addEventListener('change', generate);
 
 // ── Crypto RNG ──
 function cryptoRandInt(max) {
@@ -229,9 +207,9 @@ function getEnabledKeys() {
 // ── Password generation ──
 function generatePassword(length, enabledKeys) {
     const selectedSymbols = getSelectedSymbols();
-    const maxSymbols = (checkboxes.symbols.checked && elLimitSym.checked)
-        ? parseInt(elMaxSymNum.value, 10) : Infinity;
-    const symbolsNotFirst = checkboxes.symbols.checked && !elSymFirst.checked;
+    const symPct = checkboxes.symbols.checked
+        ? parseInt(elSymPctSlider.value, 10) : 0;
+    const targetSymCount = Math.round(length * symPct / 100);
 
     const sets = {};
     for (const k of enabledKeys)
@@ -242,30 +220,51 @@ function generatePassword(length, enabledKeys) {
 
     const chars = [];
     let symCount = 0;
-    for (const k of validKeys) {
-        const ch = sets[k][cryptoRandInt(sets[k].length)];
-        chars.push(ch);
-        if (k === 'symbols') symCount++;
+    const nonSymKeys = validKeys.filter(k => k !== 'symbols');
+    const hasSymbols = validKeys.includes('symbols');
+
+    // At 100% symbols, fill entire password with symbols
+    if (hasSymbols && symPct >= 100) {
+        for (let i = 0; i < length; i++) {
+            chars.push(sets.symbols[cryptoRandInt(sets.symbols.length)]);
+        }
+    } else {
+        // Guarantee at least one character from each enabled non-symbol type
+        for (const k of nonSymKeys) {
+            chars.push(sets[k][cryptoRandInt(sets[k].length)]);
+        }
+
+        // Fill symbol slots to reach targetSymCount
+        if (hasSymbols) {
+            const symSlots = Math.min(targetSymCount, length - chars.length);
+            for (let i = 0; i < symSlots; i++) {
+                chars.push(sets.symbols[cryptoRandInt(sets.symbols.length)]);
+                symCount++;
+            }
+        }
+
+        // Fill remaining slots from non-symbol pool
+        const nonSymPool = nonSymKeys.map(k => sets[k]).join('');
+        for (let i = chars.length; i < length; i++) {
+            const pool = nonSymPool.length > 0 ? nonSymPool
+                : (hasSymbols && symCount < targetSymCount ? sets.symbols : '');
+            if (!pool.length) return null;
+            chars.push(pool[cryptoRandInt(pool.length)]);
+        }
     }
-    for (let i = chars.length; i < length; i++) {
-        const pool = validKeys
-            .filter(k => k !== 'symbols' || symCount < maxSymbols)
-            .map(k => sets[k]).join('');
-        if (!pool.length) return null;
-        const ch = pool[cryptoRandInt(pool.length)];
-        if (validKeys.includes('symbols') && sets.symbols.includes(ch)) symCount++;
-        chars.push(ch);
-    }
+
+    // Shuffle
     for (let i = chars.length - 1; i > 0; i--) {
         const j = cryptoRandInt(i + 1);
         [chars[i], chars[j]] = [chars[j], chars[i]];
     }
-    if (symbolsNotFirst && validKeys.includes('symbols') && sets.symbols.length > 0) {
-        if (sets.symbols.includes(chars[0])) {
-            const si = chars.findIndex(c => !sets.symbols.includes(c));
-            if (si > 0) [chars[0], chars[si]] = [chars[si], chars[0]];
-        }
+
+    // Never allow symbol as first character
+    if (hasSymbols && sets.symbols.includes(chars[0])) {
+        const si = chars.findIndex(c => !sets.symbols.includes(c));
+        if (si > 0) [chars[0], chars[si]] = [chars[si], chars[0]];
     }
+
     return chars.join('');
 }
 
@@ -530,7 +529,6 @@ function generate() {
 elLengthSlider.addEventListener('input', () => {
     elLengthNum.value = elLengthSlider.value;
     updateSliderTrack(elLengthSlider, '#7f5af0');
-    syncMaxSymMax(+elLengthSlider.value);
     generate();
     updateArrowStates();
 });
@@ -539,7 +537,6 @@ elLengthNum.addEventListener('input', () => {
     if (isNaN(v) || v < 1) return;
     elLengthSlider.value = Math.min(64, Math.max(4, v));
     updateSliderTrack(elLengthSlider, '#7f5af0');
-    syncMaxSymMax(Math.min(64, Math.max(4, v)));
     generate();
     updateArrowStates();
 });
@@ -550,19 +547,9 @@ elLengthNum.addEventListener('blur', () => {
     elLengthNum.value    = v;
     elLengthSlider.value = v;
     updateSliderTrack(elLengthSlider, '#7f5af0');
-    syncMaxSymMax(v);
     generate();
     updateArrowStates();
 });
-function syncMaxSymMax(len) {
-    elMaxSymSlider.max = len;
-    if (+elMaxSymNum.value > len) {
-        elMaxSymNum.value = len;
-        elMaxSymSlider.value = len;
-        elMaxSymDisplay.textContent = len;
-    }
-    updateSliderTrack(elMaxSymSlider, '#fb923c');
-}
 
 document.getElementById('generate-btn').addEventListener('click', () => {
     generate();

@@ -98,7 +98,12 @@
                                 <span class="type-sub">!@#…</span>
                             </div>
                             <div class="type-card-actions">
-                                <button class="sym-settings-btn" id="sym-settings-btn" type="button" aria-label="Symbol settings">&#9881;</button>
+                                <button class="sym-settings-btn" id="sym-settings-btn" type="button" aria-label="Symbol settings">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+                                        <circle cx="12" cy="12" r="3"/>
+                                    </svg>
+                                </button>
                                 <label class="toggle-switch" for="opt-symbols">
                                     <input type="checkbox" id="opt-symbols">
                                     <div class="toggle-track"></div>
@@ -112,23 +117,18 @@
                         <div class="sym-opts-inner">
 
                             <div class="sym-opt-row">
-                                <input type="checkbox" id="opt-limit-sym">
-                                <label for="opt-limit-sym">Limit symbols to</label>
-                                <input id="max-sym-num" type="number" min="1" max="64" value="3" disabled>
-                                <input id="max-sym-slider" type="range" min="1" max="16" value="3" disabled>
-                                <span class="sym-count-val" id="max-sym-display">3</span>
-                            </div>
-
-                            <div class="sym-opt-row">
-                                <input type="checkbox" id="opt-sym-first">
-                                <label for="opt-sym-first">Allow as first character</label>
+                                <label for="sym-pct-slider">Percent symbols</label>
+                                <input id="sym-pct-slider" type="range" min="0" max="100" value="25">
+                                <span class="sym-count-val" id="sym-pct-display">25%</span>
                             </div>
 
                             <div>
-                                <div class="sym-picker-label">Included symbols</div>
-                                <div class="sym-chip-controls">
-                                    <button id="sym-all">All</button>
-                                    <button id="sym-none">None</button>
+                                <div class="sym-picker-header">
+                                    <span class="sym-picker-label">Included symbols</span>
+                                    <div class="sym-chip-controls">
+                                        <button id="sym-all">All</button>
+                                        <button id="sym-none">None</button>
+                                    </div>
                                 </div>
                                 <div class="symbol-picker" id="symbol-picker"></div>
                             </div>

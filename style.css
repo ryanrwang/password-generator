@@ -531,18 +531,19 @@ body {
     display: none;
     align-items: center;
     justify-content: center;
-    background: transparent;
-    border: none;
-    padding: 4px;
-    color: rgba(251, 146, 60, 0.45);
-    font-size: 22px;
+    background: rgba(251, 146, 60, 0.08);
+    border: 1.5px solid rgba(251, 146, 60, 0.25);
+    border-radius: 6px;
+    padding: 6px;
+    color: rgba(251, 146, 60, 0.5);
     cursor: pointer;
-    transition: color 0.15s;
+    transition: color 0.15s, background 0.15s, border-color 0.15s;
     -webkit-tap-highlight-color: transparent;
 }
+.sym-settings-btn svg { display: block; }
 .sym-settings-btn.visible { display: flex; }
-.sym-settings-btn:hover { color: rgba(251, 146, 60, 0.8); }
-.sym-settings-btn.active { color: #fb923c; }
+.sym-settings-btn:hover { color: rgba(251, 146, 60, 0.85); background: rgba(251, 146, 60, 0.14); border-color: rgba(251, 146, 60, 0.45); }
+.sym-settings-btn.active { color: #fb923c; background: rgba(251, 146, 60, 0.16); border-color: #fb923c; }
 
 /* ── Symbol sub-options (now a grid sibling of #card-symbols) ── */
 .symbol-options {
@@ -582,35 +583,16 @@ body {
     border-top: 1px solid #1e1e38;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 14px;
 }
 
 .sym-opt-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .sym-opt-row label { font-size: 12px; color: #9999cc; white-space: nowrap; }
-.sym-opt-row input[type="checkbox"] {
-    accent-color: #fb923c;
-    cursor: pointer;
-    width: 24px;
-    height: 24px;
-}
-.sym-opt-row input[type="number"] {
-    width: 48px;
-    background: #16213e;
-    border: 1px solid #2d2d5e;
-    border-radius: 4px;
-    color: #e0e0e0;
-    font-family: 'Noto Sans', sans-serif;
-    font-size: 12px;
-    padding: 4px;
-    text-align: center;
-    outline: none;
-}
 .sym-opt-row input[type="range"] { flex: 1; min-width: 80px; }
-.sym-opt-row input:disabled { opacity: 0.3; cursor: not-allowed; }
-.sym-count-val { font-size: 12px; color: #fb923c; min-width: 24px; }
+.sym-count-val { font-size: 12px; color: #fb923c; min-width: 32px; text-align: right; }
 
 /* Custom orange symbol slider — matches length slider styling */
-#max-sym-slider {
+#sym-pct-slider {
     display: block;
     -webkit-appearance: none;
     appearance: none;
@@ -618,9 +600,9 @@ body {
     border-radius: 2px;
     outline: none;
     cursor: pointer;
-    background: linear-gradient(to right, #fb923c 20%, #1e1e3a 20%);
+    background: linear-gradient(to right, #fb923c 25%, #1e1e3a 25%);
 }
-#max-sym-slider::-webkit-slider-thumb {
+#sym-pct-slider::-webkit-slider-thumb {
     -webkit-appearance: none;
     width: 24px; height: 24px;
     border-radius: 50%;
@@ -630,11 +612,11 @@ body {
     box-shadow: 0 0 0 2px rgba(251,146,60,0.28);
     transition: box-shadow 0.15s, transform 0.1s;
 }
-#max-sym-slider::-webkit-slider-thumb:hover {
+#sym-pct-slider::-webkit-slider-thumb:hover {
     box-shadow: 0 0 0 4px rgba(251,146,60,0.28);
     transform: scale(1.1);
 }
-#max-sym-slider::-moz-range-thumb {
+#sym-pct-slider::-moz-range-thumb {
     width: 24px; height: 24px;
     border-radius: 50%;
     background: #fb923c;
@@ -643,16 +625,22 @@ body {
 }
 
 /* Symbol picker */
+.sym-picker-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
 .sym-picker-label {
     font-size: 12px; color: #8888aa;
-    text-transform: none; letter-spacing: normal; margin-bottom: 4px;
+    text-transform: none; letter-spacing: normal;
 }
-.sym-chip-controls { display: flex; gap: 4px; margin-bottom: 8px; }
+.sym-chip-controls { display: flex; gap: 4px; }
 .sym-chip-controls button {
     background: transparent;
     border: 1px solid #2d2d5e;
     border-radius: 4px;
-    color: #555;
+    color: #9999cc;
     cursor: pointer;
     font-family: 'Noto Sans', sans-serif;
     font-size: 12px;
@@ -694,8 +682,9 @@ body {
     /* Symbols sits next to Numbers instead of full-width */
     #card-symbols { grid-column: auto; }
 
-    /* Gear icon: always reserve space, hidden when inactive, match label height */
-    .sym-settings-btn { display: flex !important; font-size: 14px; padding: 0; line-height: 1; }
+    /* Gear icon: always reserve space, hidden when inactive */
+    .sym-settings-btn { display: flex !important; padding: 4px; }
+    .sym-settings-btn svg { width: 14px; height: 14px; }
     .sym-settings-btn:not(.visible) { visibility: hidden; }
 
     /* Options panel: keep gap, restore top border for clean separation */
