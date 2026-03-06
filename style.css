@@ -124,29 +124,42 @@ body {
     position: absolute;
     left: 0;
     right: 0;
-    top: -2px;
-    bottom: -2px;
+    top: -4px;
+    bottom: -4px;
     pointer-events: none;
-    overflow: visible;
+    overflow: hidden;
     transition: opacity 0.5s ease;
 }
 .elec-spark {
     position: absolute;
-    width: 2px;
-    height: var(--spark-h, 4px);
-    background: var(--spark-color, #60a5fa);
+    width: var(--spark-w, 2px);
+    height: var(--spark-h, 1px);
+    background: #fff;
     border-radius: 1px;
     opacity: 0;
     pointer-events: none;
-    box-shadow: 0 0 6px 2px var(--spark-color, #60a5fa);
-    animation: elecSpark var(--dur, 0.3s) ease-out infinite var(--delay, 0s);
+    box-shadow:
+        0 0 2px 0.5px #fff,
+        0 0 4px 1px var(--spark-color, #60a5fa),
+        calc(var(--trail-x) * 1) 0 2px 0.5px var(--spark-color, #60a5fa);
+    will-change: transform;
+    animation: elecSpark var(--dur, 0.3s) linear infinite var(--delay, 0s);
 }
 @keyframes elecSpark {
-    0%   { opacity: 0; transform: translateY(0) scaleY(0.5); }
-    10%  { opacity: 1; transform: translateY(calc(var(--travel-y) * 0.15)) scaleY(1.2); }
-    35%  { opacity: 0.3; transform: translateY(calc(var(--travel-y) * 0.5)) scaleY(0.5); }
-    55%  { opacity: 0.8; transform: translateY(calc(var(--travel-y) * 0.4)) scaleY(1); }
-    100% { opacity: 0; transform: translateY(var(--travel-y)) scaleY(0.1); }
+    0%   { opacity: 0;   transform: translate(0, 0); }
+    3%   { opacity: 1;   transform: translate(calc(var(--travel-x) * 0.04), var(--zag)); }
+    11%  { opacity: 1;   transform: translate(calc(var(--travel-x) * 0.12), calc(var(--zag) * -1)); }
+    19%  { opacity: 0.9; transform: translate(calc(var(--travel-x) * 0.20), var(--zag)); }
+    27%  { opacity: 1;   transform: translate(calc(var(--travel-x) * 0.28), calc(var(--zag) * -1)); }
+    35%  { opacity: 0.9; transform: translate(calc(var(--travel-x) * 0.36), var(--zag)); }
+    43%  { opacity: 1;   transform: translate(calc(var(--travel-x) * 0.44), calc(var(--zag) * -1)); }
+    51%  { opacity: 0.9; transform: translate(calc(var(--travel-x) * 0.52), var(--zag)); }
+    59%  { opacity: 1;   transform: translate(calc(var(--travel-x) * 0.60), calc(var(--zag) * -1)); }
+    67%  { opacity: 0.9; transform: translate(calc(var(--travel-x) * 0.68), var(--zag)); }
+    75%  { opacity: 1;   transform: translate(calc(var(--travel-x) * 0.76), calc(var(--zag) * -1)); }
+    83%  { opacity: 0.8; transform: translate(calc(var(--travel-x) * 0.84), var(--zag)); }
+    91%  { opacity: 0.5; transform: translate(calc(var(--travel-x) * 0.92), calc(var(--zag) * -1)); }
+    100% { opacity: 0;   transform: translate(var(--travel-x), 0); }
 }
 
 /* ── Password content wrapper (shifts to stay centered above card) ── */

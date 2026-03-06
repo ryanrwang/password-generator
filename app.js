@@ -443,6 +443,16 @@ function updateStrengthUI(score) {
 }
 
 // ── Electric sparks on strength bar (length 40+) ──
+function setupSpark(spark, zagRange) {
+    const goRight = Math.random() > 0.5;
+    const dist = 40 + Math.random() * 80;
+    spark.style.left = (Math.random() * 100) + '%';
+    spark.style.top = (20 + Math.random() * 60) + '%';
+    spark.style.setProperty('--travel-x', (goRight ? dist : -dist) + 'px');
+    spark.style.setProperty('--zag', (3 + Math.random() * zagRange).toFixed(1) + 'px');
+    // Trail shadows point opposite to travel direction
+    spark.style.setProperty('--trail-x', (goRight ? -2 : 2) + 'px');
+}
 function updateElecSparks(len) {
     let newState;
     if      (len >= 56) newState = 'high';
@@ -456,31 +466,27 @@ function updateElecSparks(len) {
     elElecSparks.innerHTML = '';
     if (!newState) { elElecSparks.style.opacity = '0'; return; }
 
-    let count, speedBase;
-    if      (newState === 'low')  { count = 20; speedBase = 0.2;  }
-    else if (newState === 'med')  { count = 50; speedBase = 0.12; }
-    else                          { count = 90; speedBase = 0.07; }
+    let count, speedBase, zagRange;
+    if      (newState === 'low')  { count = 30;  speedBase = 0.35; zagRange = 5;  }
+    else if (newState === 'med')  { count = 60;  speedBase = 0.22; zagRange = 7;  }
+    else                          { count = 100; speedBase = 0.14; zagRange = 10; }
 
     const elecColors = ['#60a5fa', '#93c5fd', '#3b82f6', '#a5f3fc', '#e0f2fe', '#fff'];
     for (let i = 0; i < count; i++) {
         const spark = document.createElement('span');
         spark.className = 'elec-spark';
-        spark.style.left = (Math.random() * 100) + '%';
-        const goUp = Math.random() > 0.5;
-        const travel = 3 + Math.random() * 10;
-        spark.style.top = goUp ? '0' : '100%';
-        spark.style.setProperty('--travel-y', (goUp ? -travel : travel) + 'px');
+        setupSpark(spark, zagRange);
+        // Timing — fast with slight variation
         spark.style.setProperty('--dur', (speedBase + Math.random() * 0.15).toFixed(2) + 's');
         spark.style.setProperty('--delay', (-Math.random() * 1.5).toFixed(2) + 's');
-        spark.style.setProperty('--spark-h', (1 + Math.random() * 4).toFixed(1) + 'px');
+        // Size — short line segments
+        spark.style.setProperty('--spark-w', (1 + Math.random() * 2).toFixed(1) + 'px');
+        spark.style.setProperty('--spark-h', (0.5 + Math.random() * 0.8).toFixed(1) + 'px');
         const color = elecColors[Math.floor(Math.random() * elecColors.length)];
         spark.style.setProperty('--spark-color', color);
+        // Re-randomize on each animation cycle
         spark.addEventListener('animationiteration', () => {
-            spark.style.left = (Math.random() * 100) + '%';
-            const up = Math.random() > 0.5;
-            const t = 3 + Math.random() * 10;
-            spark.style.top = up ? '0' : '100%';
-            spark.style.setProperty('--travel-y', (up ? -t : t) + 'px');
+            setupSpark(spark, zagRange);
         });
         elElecSparks.appendChild(spark);
     }
