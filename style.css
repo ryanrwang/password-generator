@@ -237,6 +237,21 @@ body {
 .btn-secondary:hover  { background: rgba(255, 255, 255, 0.09); color: #e8edf5; border-color: rgba(255,255,255,0.2); }
 .btn-secondary.copied { border-color: #2cb67d; color: #2cb67d; background: rgba(44,182,125,0.12); }
 
+/* ── Settings overlay (scrim behind card) ── */
+.settings-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9;
+    background: rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.35s ease;
+}
+.settings-overlay.visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
 /* ── SETTINGS CARD (centered glass sheet) ── */
 .settings-card {
     position: fixed;
@@ -332,6 +347,8 @@ body {
 
 /* ── Card shared base (used for length + type cards) ── */
 .type-card {
+    display: flex;
+    flex-direction: column;
     background: rgba(13, 13, 32, 0.6);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
@@ -468,7 +485,8 @@ body {
     cursor: pointer;
     user-select: none;
     transition: background 0.15s;
-    border-radius: 8px 8px 0 0;
+    border-radius: 6px;
+    flex: 1;
 }
 .type-card-header:hover { background: rgba(255,255,255,0.03); }
 
@@ -648,6 +666,7 @@ body {
     transition: border-color 0.1s, color 0.1s;
 }
 .sym-chip-controls button:hover { border-color: #fb923c; color: #fb923c; }
+.sym-chip-controls button.active { border-color: #fb923c; color: #fb923c; background: rgba(251, 146, 60, 0.12); }
 
 .symbol-picker { display: flex; flex-wrap: wrap; gap: 4px; }
 .sym-chip {
@@ -676,7 +695,8 @@ body {
 
 /* ── Mobile compact overrides (must come after base rules) ── */
 @media (max-width: 768px) {
-    .type-sub { display: none; }
+    .settings-card { max-height: calc(100vh - 48px); }
+    .type-info { flex-direction: row; align-items: baseline; gap: 6px; }
     .type-card-header { padding: 12px; }
 
     /* Symbols sits next to Numbers instead of full-width */

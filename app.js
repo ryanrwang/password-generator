@@ -171,15 +171,27 @@ for (const sym of DEFAULT_SYMBOLS) {
     btn.className = 'sym-chip';
     btn.textContent = sym;
     btn.dataset.sym = sym;
-    btn.addEventListener('click', () => { btn.classList.toggle('off'); generate(); });
+    btn.addEventListener('click', () => { btn.classList.toggle('off'); updateSymbolQuickButtons(); generate(); });
     elSymPicker.appendChild(btn);
 }
-document.getElementById('sym-all').addEventListener('click', () => {
+const elSymAll  = document.getElementById('sym-all');
+const elSymNone = document.getElementById('sym-none');
+
+function updateSymbolQuickButtons() {
+    const chips = elSymPicker.querySelectorAll('.sym-chip');
+    const offCount = elSymPicker.querySelectorAll('.sym-chip.off').length;
+    elSymAll.classList.toggle('active', offCount === 0);
+    elSymNone.classList.toggle('active', offCount === chips.length);
+}
+
+elSymAll.addEventListener('click', () => {
     elSymPicker.querySelectorAll('.sym-chip').forEach(c => c.classList.remove('off'));
+    updateSymbolQuickButtons();
     generate();
 });
-document.getElementById('sym-none').addEventListener('click', () => {
+elSymNone.addEventListener('click', () => {
     elSymPicker.querySelectorAll('.sym-chip').forEach(c => c.classList.add('off'));
+    updateSymbolQuickButtons();
     generate();
 });
 function getSelectedSymbols() {
@@ -560,14 +572,38 @@ document.getElementById('generate-btn').addEventListener('click', () => {
 const elSettingsCard   = document.getElementById('settings-card');
 const elSettingsHandle = document.getElementById('settings-handle');
 
+// Overlay (scrim behind card)
+const elOverlay = document.createElement('div');
+elOverlay.className = 'settings-overlay';
+elSettingsCard.parentNode.insertBefore(elOverlay, elSettingsCard);
+elOverlay.addEventListener('click', () => closeCard());
+
+const elPasswordContent = document.querySelector('.password-content');
+
 function updateContentOffset() {
     const isOpen = elSettingsCard.classList.contains('open');
-    if (isOpen) {
-        const cardH = elSettingsCard.offsetHeight;
-        elTopPanel.style.setProperty('--card-offset', `${-cardH / 2}px`);
-    } else {
+    if (!isOpen) {
         elTopPanel.style.setProperty('--card-offset', '-24px');
+        elOverlay.classList.remove('visible');
+        return;
     }
+
+    const viewportH = window.innerHeight;
+    const cardH = elSettingsCard.offsetHeight;
+    const contentH = elPasswordContent.offsetHeight;
+    const naturalTop = (viewportH - contentH) / 2;
+    const minPad = 16;
+
+    // Shift content up by half the card height, but never above viewport top
+    const maxUpShift = Math.max(0, naturalTop - minPad);
+    const offset = Math.max(-cardH / 2, -maxUpShift);
+
+    elTopPanel.style.setProperty('--card-offset', `${offset}px`);
+
+    // Show overlay only when card actually covers the password content
+    const cardTop = viewportH - cardH;
+    const contentBottom = naturalTop + contentH + offset;
+    elOverlay.classList.toggle('visible', cardTop < contentBottom);
 }
 
 function openCard() {
@@ -697,4 +733,5 @@ document.addEventListener('mouseup',  stopHold);
 document.addEventListener('touchend', stopHold);
 
 updateArrowStates();
+updateSymbolQuickButtons();
 generate();
