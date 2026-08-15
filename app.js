@@ -20,13 +20,21 @@ const elTopPanel      = document.querySelector('.fullscreen-display');
 const elSparkleField = document.createElement('div');
 elSparkleField.className = 'sparkle-field';
 elSparkleField.style.opacity = '0';
+elSparkleField.setAttribute('aria-hidden', 'true');
 elTopPanel.insertBefore(elSparkleField, elTopPanel.firstChild);
 
 // Electric sparks container — child of strength bar so they follow its width
 const elElecSparks = document.createElement('div');
 elElecSparks.className = 'strength-sparks';
 elElecSparks.style.opacity = '0';
+elElecSparks.setAttribute('aria-hidden', 'true');
 elStrengthBar.appendChild(elElecSparks);
+
+// ── Motion preference ──
+// Every effect in this file is decoration, so honour the OS setting: skip
+// building the elements entirely rather than just animating them to nowhere.
+const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+const reducedMotion = () => motionQuery.matches;
 
 const elLengthNum     = document.getElementById('length-num');
 const elLengthSlider  = document.getElementById('length-slider');
@@ -119,6 +127,7 @@ elCopyBtn.addEventListener('click',  copyPassword);
 
 // ── Impact effect on generate ──
 function triggerImpact() {
+    if (reducedMotion()) return;
     elPassword.classList.remove('impact');
     void elPassword.offsetWidth;
     elPassword.classList.add('impact');
@@ -126,6 +135,7 @@ function triggerImpact() {
 
 // ── Copy sparks (radiate from each character) ──
 function spawnCopySparks() {
+    if (reducedMotion()) return;
     const spans = elPassword.querySelectorAll('span:not(.pw-error)');
     if (!spans.length) return;
     const maxTotal = 50;
@@ -233,7 +243,7 @@ function getSelectedSymbols() {
 elSymPctSlider.addEventListener('input', () => {
     elSymPctDisplay.textContent = elSymPctSlider.value + '%';
     updateSliderTrack(elSymPctSlider);
-    generate();
+    scheduleGenerate();
 });
 
 // ── Crypto RNG ──
@@ -346,7 +356,8 @@ const TIER_CLASSES = STRENGTH_TIERS.map(t => t.cls);
 // ── Sparkles (twinkle for score ≥ 44, warp-streaks for length ≥ 30) ──
 function updateSparkles(score, len) {
     let newState;
-    if      (len >= 56)   newState = 'warp-high';
+    if      (reducedMotion()) newState = null;
+    else if (len >= 56)   newState = 'warp-high';
     else if (len >= 42)   newState = 'warp-med';
     else if (len >= 30)   newState = 'warp-low';
     else if (score >= 90) newState = 'amazing';
@@ -405,6 +416,7 @@ function updateStrengthUI(score) {
     if (score === null) {
         elStrengthBar.classList.remove(...TIER_CLASSES);
         elStrengthBar.style.width   = '0px';
+        elStrengthBar.setAttribute('aria-valuenow', '0');
         elTopPanel.style.background = '';   // falls back to --panel-bg
         updateSparkles(null, 0);
         updateElecSparks(0);
@@ -419,6 +431,7 @@ function updateStrengthUI(score) {
     elStrengthBar.classList.remove(...TIER_CLASSES);
     elStrengthBar.classList.add(tier.cls);
     elStrengthBar.style.width = width + 'px';
+    elStrengthBar.setAttribute('aria-valuenow', Math.round(score));
 
     const tintRgb = getComputedStyle(elStrengthBar).getPropertyValue('--tint').trim();
 
@@ -452,7 +465,8 @@ function setupSpark(spark, zagRange) {
 }
 function updateElecSparks(len) {
     let newState;
-    if      (len >= 56) newState = 'high';
+    if      (reducedMotion()) newState = null;
+    else if (len >= 56) newState = 'high';
     else if (len >= 48) newState = 'med';
     else if (len >= 40) newState = 'low';
     else                newState = null;
@@ -511,11 +525,24 @@ function generate() {
     updateStrengthUI(computeStrengthScore(length, enabled));
 }
 
+// Dragging a slider can fire `input` faster than the browser paints, and each
+// generate() rebuilds the password markup and may rebuild the sparkle field.
+// Coalesce to at most one run per frame; the trailing call still lands, so the
+// value the user releases on is always the one rendered.
+let generateFrame = null;
+function scheduleGenerate() {
+    if (generateFrame !== null) return;
+    generateFrame = requestAnimationFrame(() => {
+        generateFrame = null;
+        generate();
+    });
+}
+
 // ── Length sync ──
 elLengthSlider.addEventListener('input', () => {
     elLengthNum.value = elLengthSlider.value;
     updateSliderTrack(elLengthSlider);
-    generate();
+    scheduleGenerate();
     updateArrowStates();
 });
 // Don't rewrite the field while typing — that fights the typist mid-entry.
@@ -524,7 +551,7 @@ elLengthNum.addEventListener('input', () => {
     if (elLengthNum.value.trim() === '') return;
     elLengthSlider.value = getLength();
     updateSliderTrack(elLengthSlider);
-    generate();
+    scheduleGenerate();
     updateArrowStates();
 });
 elLengthNum.addEventListener('blur', () => {
@@ -701,6 +728,15 @@ elArrowUp.addEventListener('mousedown',    () => startHold(1));
 elArrowUp.addEventListener('touchstart',   (e) => { e.preventDefault(); startHold(1); });
 document.addEventListener('mouseup',  stopHold);
 document.addEventListener('touchend', stopHold);
+
+// Rebuild (or tear down) the effects if the OS setting changes mid-session.
+// The sentinel has to be a value the state machines never compute: null is the
+// reduced-motion result, so using it here would satisfy their memo check and
+// leave the existing elements in the DOM.
+motionQuery.addEventListener('change', () => {
+    sparkleState = elecSparkState = 'invalidated';
+    generate();
+});
 
 updateArrowStates();
 updateSymbolQuickButtons();
