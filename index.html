@@ -16,10 +16,16 @@
     <div class="fullscreen-display">
         <div class="password-content">
             <div class="password-wrap">
-                <div class="password-display" id="password"></div>
+                <!-- Live region: announces each new password and any error -->
+                <div class="password-display" id="password"
+                     role="status" aria-live="polite" aria-atomic="true"></div>
             </div>
             <div class="strength-wrap">
-                <div class="strength-bar-track"><div id="strength-bar"></div></div>
+                <div class="strength-bar-track">
+                    <div id="strength-bar" role="progressbar"
+                         aria-label="Password strength"
+                         aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div>
+                </div>
             </div>
             <button id="copy-btn" class="btn btn-secondary">Copy</button>
         </div>

@@ -820,3 +820,15 @@ body {
         border-top-right-radius: 0;
     }
 }
+
+/* ── Reduced motion ──
+   app.js already skips building the sparkle/spark elements when this is set;
+   this covers the rest — the strength-bar pulse, the impact bounce, the sheet
+   slide and every colour/width transition. Kept last so it wins. */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
