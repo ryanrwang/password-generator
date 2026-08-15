@@ -1,4 +1,8 @@
 const DEFAULT_SYMBOLS = '!@#$%^&*()-_=+[]{}|;:,.<>?';
+// Keep in sync with the min/max attributes on #length-num and #length-slider
+const MIN_LENGTH = 4;
+const MAX_LENGTH = 64;
+const FALLBACK_LENGTH = 16;
 const CHAR_SETS = {
     upper:   'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
     lower:   'abcdefghijklmnopqrstuvwxyz',
@@ -41,6 +45,17 @@ let currentPassword = '';
 let sparkleState    = null;   // null | 'green' | 'amazing' | 'warp-low' | 'warp-med' | 'warp-high'
 let elecSparkState  = null;   // null | 'low' | 'med' | 'high'
 
+// ── Length helpers ──
+function clampLength(v) {
+    return Math.min(MAX_LENGTH, Math.max(MIN_LENGTH, v));
+}
+// Single source of truth for the length used to generate + score.
+// The raw field may hold an out-of-range value mid-typing; blur normalises it.
+function getLength() {
+    const v = parseInt(elLengthNum.value, 10);
+    return isNaN(v) ? FALLBACK_LENGTH : clampLength(v);
+}
+
 // ── Slider fill gradient ──
 function updateSliderTrack(slider, color) {
     const pct = ((slider.value - slider.min) / (slider.max - slider.min)) * 100;
@@ -63,7 +78,6 @@ function renderPassword(pw) {
         .map(ch => `<span class="${charClass(ch)}">${HTML_ESC[ch] ?? ch}</span>`)
         .join('');
 }
-function clearDisplay() { currentPassword = ''; elPassword.innerHTML = ''; }
 function showError(msg) {
     currentPassword = '';
     elPassword.innerHTML = `<span class="pw-error">${msg}</span>`;
@@ -71,18 +85,28 @@ function showError(msg) {
 
 // ── Copy ──
 let copyTimer = null;
+function flashCopyState(label, cls) {
+    elCopyBtn.textContent = label;
+    elCopyBtn.classList.remove('copied', 'copy-failed');
+    if (cls) elCopyBtn.classList.add(cls);
+    clearTimeout(copyTimer);
+    copyTimer = setTimeout(() => {
+        elCopyBtn.textContent = 'Copy';
+        elCopyBtn.classList.remove('copied', 'copy-failed');
+    }, 2000);
+}
 function copyPassword() {
     if (!currentPassword) return;
+    // Absent outside secure contexts (plain http://), and can reject if the
+    // permission is denied — either way the user needs to be told.
+    if (!navigator.clipboard?.writeText) {
+        flashCopyState('Copy failed', 'copy-failed');
+        return;
+    }
     navigator.clipboard.writeText(currentPassword).then(() => {
         spawnCopySparks();
-        elCopyBtn.textContent = 'Copied!';
-        elCopyBtn.classList.add('copied');
-        clearTimeout(copyTimer);
-        copyTimer = setTimeout(() => {
-            elCopyBtn.textContent = 'Copy';
-            elCopyBtn.classList.remove('copied');
-        }, 2000);
-    });
+        flashCopyState('Copied!', 'copied');
+    }).catch(() => flashCopyState('Copy failed', 'copy-failed'));
 }
 elPassword.addEventListener('click', copyPassword);
 elCopyBtn.addEventListener('click',  copyPassword);
@@ -207,9 +231,14 @@ elSymPctSlider.addEventListener('input', () => {
 });
 
 // ── Crypto RNG ──
+// Rejection sampling — a plain `% max` skews toward low indices because 2^32
+// is not a multiple of most charset sizes. Discard the uneven tail first.
 function cryptoRandInt(max) {
+    const limit = Math.floor(0x100000000 / max) * max;
     const a = new Uint32Array(1);
-    crypto.getRandomValues(a);
+    do {
+        crypto.getRandomValues(a);
+    } while (a[0] >= limit);
     return a[0] % max;
 }
 function getEnabledKeys() {
@@ -231,7 +260,6 @@ function generatePassword(length, enabledKeys) {
     if (validKeys.length === 0 || length < validKeys.length) return null;
 
     const chars = [];
-    let symCount = 0;
     const nonSymKeys = validKeys.filter(k => k !== 'symbols');
     const hasSymbols = validKeys.includes('symbols');
 
@@ -251,15 +279,16 @@ function generatePassword(length, enabledKeys) {
             const symSlots = Math.min(targetSymCount, length - chars.length);
             for (let i = 0; i < symSlots; i++) {
                 chars.push(sets.symbols[cryptoRandInt(sets.symbols.length)]);
-                symCount++;
             }
         }
 
-        // Fill remaining slots from non-symbol pool
+        // Fill remaining slots from the non-symbol pool. With symbols as the
+        // only enabled type there is nothing else to draw from, so the percent
+        // target cannot apply — fall back to symbols rather than failing.
         const nonSymPool = nonSymKeys.map(k => sets[k]).join('');
         for (let i = chars.length; i < length; i++) {
             const pool = nonSymPool.length > 0 ? nonSymPool
-                : (hasSymbols && symCount < targetSymCount ? sets.symbols : '');
+                : (hasSymbols ? sets.symbols : '');
             if (!pool.length) return null;
             chars.push(pool[cryptoRandInt(pool.length)]);
         }
@@ -366,7 +395,7 @@ function updateStrengthUI(score) {
         return;
     }
 
-    const len   = parseInt(elLengthNum.value, 10);
+    const len   = getLength();
     // Width: 40 px (score 0) → 440 px (score 100)
     const width = Math.round(40 + score * 4.0);
 
@@ -506,7 +535,7 @@ function updateElecSparks(len) {
 
 // ── Generate ──
 function generate() {
-    const length  = parseInt(elLengthNum.value, 10);
+    const length  = getLength();
     const enabled = getEnabledKeys();
     if (enabled.length === 0) {
         showError('Select at least one character type.');
@@ -544,18 +573,17 @@ elLengthSlider.addEventListener('input', () => {
     generate();
     updateArrowStates();
 });
+// Don't rewrite the field while typing — that fights the typist mid-entry.
+// getLength() clamps whatever is in there; blur normalises the visible value.
 elLengthNum.addEventListener('input', () => {
-    let v = parseInt(elLengthNum.value, 10);
-    if (isNaN(v) || v < 1) return;
-    elLengthSlider.value = Math.min(64, Math.max(4, v));
+    if (elLengthNum.value.trim() === '') return;
+    elLengthSlider.value = getLength();
     updateSliderTrack(elLengthSlider, '#7f5af0');
     generate();
     updateArrowStates();
 });
 elLengthNum.addEventListener('blur', () => {
-    let v = parseInt(elLengthNum.value, 10);
-    if (isNaN(v)) v = 16;
-    v = Math.min(64, Math.max(4, v));
+    const v = getLength();
     elLengthNum.value    = v;
     elLengthSlider.value = v;
     updateSliderTrack(elLengthSlider, '#7f5af0');
@@ -698,19 +726,16 @@ const elArrowDown = document.getElementById('length-arrow-down');
 const elArrowUp   = document.getElementById('length-arrow-up');
 
 function updateArrowStates() {
-    const v = parseInt(elLengthNum.value, 10);
-    elArrowDown.disabled = v <= 4;
-    elArrowUp.disabled   = v >= 64;
+    const v = getLength();
+    elArrowDown.disabled = v <= MIN_LENGTH;
+    elArrowUp.disabled   = v >= MAX_LENGTH;
 }
 
 function adjustLength(delta) {
-    let v = parseInt(elLengthNum.value, 10);
-    if (isNaN(v)) v = 16;
-    v = Math.min(64, Math.max(4, v + delta));
+    const v = clampLength(getLength() + delta);
     elLengthNum.value    = v;
     elLengthSlider.value = v;
     updateSliderTrack(elLengthSlider, '#7f5af0');
-    syncMaxSymMax(v);
     generate();
     updateArrowStates();
 }
