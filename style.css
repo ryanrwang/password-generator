@@ -1,10 +1,39 @@
+:root {
+    /* Surfaces */
+    --bg-base:        #1a1a2e;
+    --bg-deep:        #12122a;
+    --panel-bg:       linear-gradient(160deg, #12122a 0%, #1a1a2e 100%);
+    --card-bg:        rgba(13, 13, 32, 0.6);
+    --card-border:    rgba(255, 255, 255, 0.06);
+    --sheet-bg:       rgba(22, 33, 62, 0.72);
+    --slider-track:   #1e1e3a;
+    --thumb-ring:     #16213e;
+
+    /* Per-character-type accents — also the strength-bar and chip colours */
+    --accent-purple:  #7f5af0;
+    --accent-upper:   #93c5fd;
+    --accent-lower:   #e2e8f0;
+    --accent-numbers: #4ade80;
+    --accent-symbols: #fb923c;
+
+    /* Text */
+    --text-body:      #e0e0e0;
+    --text-muted:     #9999cc;
+    --text-dim:       #8888aa;
+    --text-label-off: #55557a;
+
+    /* Feedback */
+    --ok:             #2cb67d;
+    --error:          #f87171;
+}
+
 *, *::before, *::after { box-sizing: border-box; }
 
 body {
     margin: 0;
-    background: #1a1a2e;
+    background: var(--bg-base);
     font-family: 'Noto Sans', sans-serif;
-    color: #e0e0e0;
+    color: var(--text-body);
     overflow: hidden;
 }
 
@@ -18,7 +47,7 @@ body {
     justify-content: center;
     align-items: center;
     padding: 32px 128px;
-    background: linear-gradient(160deg, #12122a 0%, #1a1a2e 100%);
+    background: var(--panel-bg);
     overflow: hidden;
     transition: background 0.65s ease;
     isolation: isolate;
@@ -72,14 +101,14 @@ body {
 .password-display:hover { filter: brightness(1.12); }
 
 /* Character colour classes */
-.ch-upper { color: #93c5fd; }
-.ch-lower { color: #e2e8f0; }
-.ch-num   { color: #4ade80; }
-.ch-sym   { color: #fb923c; }
+.ch-upper { color: var(--accent-upper); }
+.ch-lower { color: var(--accent-lower); }
+.ch-num   { color: var(--accent-numbers); }
+.ch-sym   { color: var(--accent-symbols); }
 
 /* Error message rendered inside the password area */
 .pw-error {
-    color: #f87171;
+    color: var(--error);
     font-size: clamp(14px, 2.2vw, 16px);
     font-family: 'Noto Sans', sans-serif;
     font-weight: 400;
@@ -106,7 +135,8 @@ body {
     transition: width 0.55s cubic-bezier(0.34,1.2,0.64,1),
                 box-shadow 0.55s ease,
                 background 0.45s ease;
-    animation: flamePulse 3s ease-in-out infinite;
+    /* No animation-name here — each tier supplies its own (or none) */
+    animation: 3s ease-in-out infinite;
 }
 @keyframes flamePulse {
     0%, 100% { filter: brightness(1);    }
@@ -117,6 +147,73 @@ body {
     0%, 100% { filter: brightness(1)    saturate(1.05); }
     30%      { filter: brightness(1.22) saturate(1.18); }
     65%      { filter: brightness(0.9)  saturate(0.96); }
+}
+
+/* ── Strength tiers ──
+   Chosen by password length in JS (see STRENGTH_TIERS); the colour ramp runs
+   red → orange → amber → lime → green as the password gets longer. Everything
+   visual lives here; --tint is read back by JS to build the panel's glow.
+   Selectors need the #id to outrank the base rule above. */
+#strength-bar.tier-crimson {
+    --tint: 220,38,38;
+    background: linear-gradient(90deg,#b91c1c,#dc2626,#ef4444,#dc2626,#b91c1c);
+    box-shadow: 0 0 6px 2px rgba(239,68,68,0.5),
+                0 0 14px 3px rgba(185,28,28,0.22);
+    animation-name: none;
+}
+#strength-bar.tier-red {
+    --tint: 210,55,20;
+    background: linear-gradient(90deg,#991b1b,#dc2626,#ea580c,#dc2626,#991b1b);
+    box-shadow: 0 0 7px 2px rgba(220,38,38,0.52),
+                0 0 18px 4px rgba(153,27,27,0.24);
+    animation-name: none;
+}
+#strength-bar.tier-orange {
+    --tint: 234,88,12;
+    background: linear-gradient(90deg,#c2410c,#ea580c,#f97316,#ea580c,#c2410c);
+    box-shadow: 0 0 8px 2px rgba(234,88,12,0.54),
+                0 0 20px 4px rgba(194,65,12,0.26),
+                0 0 32px 5px rgba(127,29,29,0.1);
+    animation-name: none;
+}
+#strength-bar.tier-amber {
+    --tint: 245,158,11;
+    background: linear-gradient(90deg,#d97706,#f59e0b,#fbbf24,#f59e0b,#d97706);
+    box-shadow: 0 0 9px 3px rgba(251,191,36,0.54),
+                0 0 22px 5px rgba(245,158,11,0.28),
+                0 0 38px 6px rgba(217,119,6,0.12);
+    animation-name: flamePulse;
+    animation-duration: 2s;
+}
+#strength-bar.tier-lime {
+    --tint: 132,204,22;
+    background: linear-gradient(90deg,#65a30d,#84cc16,#a3e635,#84cc16,#65a30d);
+    box-shadow: 0 0 9px 3px rgba(163,230,53,0.52),
+                0 0 22px 5px rgba(132,204,22,0.28),
+                0 0 38px 6px rgba(101,163,13,0.12);
+    animation-name: flamePulse;
+    animation-duration: 1.4s;
+}
+#strength-bar.tier-green {
+    --tint: 34,197,94;
+    background: linear-gradient(90deg,#15803d,#22c55e,#4ade80,#22c55e,#15803d);
+    box-shadow: 0 0 8px 2px rgba(74,222,128,0.9),
+                0 0 20px 5px rgba(34,197,94,0.6),
+                0 0 36px 8px rgba(22,163,74,0.3),
+                0 0 50px 10px rgba(22,163,74,0.12);
+    animation-name: crispPulse;
+    animation-duration: 1.1s;
+}
+#strength-bar.tier-vivid {
+    --tint: 80,240,120;
+    background: linear-gradient(90deg,#22c55e,#4ade80,#a7f3d0,#4ade80,#22c55e);
+    box-shadow: 0 0 8px 2px rgba(134,239,172,0.95),
+                0 0 18px 5px rgba(74,222,128,0.78),
+                0 0 34px 8px rgba(34,197,94,0.45),
+                0 0 52px 11px rgba(22,163,74,0.22),
+                0 0 70px 14px rgba(22,163,74,0.08);
+    animation-name: crispPulse;
+    animation-duration: 0.65s;
 }
 
 /* ── Electric sparks on strength bar ── */
@@ -214,7 +311,7 @@ body {
     font-weight: 700;
     padding: 8px 24px;
     border-radius: 8px;
-    border: 2px solid #7f5af0;
+    border: 2px solid var(--accent-purple);
     cursor: pointer;
     letter-spacing: 0.04em;
     transition: background 0.15s, border-color 0.15s, color 0.15s;
@@ -222,7 +319,7 @@ body {
 }
 /* Primary — filled purple */
 .btn-primary {
-    background: #7f5af0;
+    background: var(--accent-purple);
     color: #fff;
 }
 .btn-primary:hover  { background: #6b46e0; border-color: #6b46e0; }
@@ -235,8 +332,8 @@ body {
     border-color: rgba(255, 255, 255, 0.11);
 }
 .btn-secondary:hover  { background: rgba(255, 255, 255, 0.09); color: #e8edf5; border-color: rgba(255,255,255,0.2); }
-.btn-secondary.copied      { border-color: #2cb67d; color: #2cb67d; background: rgba(44,182,125,0.12); }
-.btn-secondary.copy-failed { border-color: #f87171; color: #f87171; background: rgba(248,113,113,0.12); }
+.btn-secondary.copied      { border-color: var(--ok); color: var(--ok); background: rgba(44,182,125,0.12); }
+.btn-secondary.copy-failed { border-color: var(--error); color: var(--error); background: rgba(248,113,113,0.12); }
 
 /* ── Settings overlay (scrim behind card) ── */
 .settings-overlay {
@@ -263,7 +360,7 @@ body {
     max-width: 600px;
     width: 100%;
     margin: 0 auto;
-    background: rgba(22, 33, 62, 0.72);
+    background: var(--sheet-bg);
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
     border: 1px solid rgba(255, 255, 255, 0.08);
@@ -350,7 +447,7 @@ body {
 .type-card {
     display: flex;
     flex-direction: column;
-    background: rgba(13, 13, 32, 0.6);
+    background: var(--card-bg);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     border: 2px solid rgba(255, 255, 255, 0.06);
@@ -403,7 +500,7 @@ body {
     pointer-events: none;
 }
 .length-arrow:hover {
-    color: #7f5af0;
+    color: var(--accent-purple);
     background: rgba(127, 90, 240, 0.1);
 }
 .length-arrow:active {
@@ -429,8 +526,9 @@ body {
 }
 #length-num { -moz-appearance: textfield; }
 
-/* Sleek custom range slider */
+/* Sleek custom range slider — --fill is picked up by updateSliderTrack() */
 #length-slider {
+    --fill: var(--accent-purple);
     display: block;
     width: 100%;
     -webkit-appearance: none;
@@ -439,15 +537,15 @@ body {
     border-radius: 2px;
     outline: none;
     cursor: pointer;
-    background: linear-gradient(to right, #7f5af0 50%, #1e1e3a 50%);
+    background: linear-gradient(to right, var(--fill) 50%, var(--slider-track) 50%);
 }
 #length-slider::-webkit-slider-thumb {
     -webkit-appearance: none;
     width: 24px; height: 24px;
     border-radius: 50%;
-    background: #7f5af0;
+    background: var(--accent-purple);
     cursor: pointer;
-    border: 2px solid #16213e;
+    border: 2px solid var(--thumb-ring);
     box-shadow: 0 0 0 2px rgba(127,90,240,0.28);
     transition: box-shadow 0.15s, transform 0.1s;
 }
@@ -458,9 +556,9 @@ body {
 #length-slider::-moz-range-thumb {
     width: 24px; height: 24px;
     border-radius: 50%;
-    background: #7f5af0;
+    background: var(--accent-purple);
     cursor: pointer;
-    border: 2px solid #16213e;
+    border: 2px solid var(--thumb-ring);
 }
 
 /* ── Type cards grid ── */
@@ -492,7 +590,7 @@ body {
 .type-card-header:hover { background: rgba(255,255,255,0.03); }
 
 .type-info { display: flex; flex-direction: column; gap: 4px; }
-.type-label { font-size: 14px; font-weight: 700; color: #55557a; transition: color 0.2s; }
+.type-label { font-size: 14px; font-weight: 700; color: var(--text-label-off); transition: color 0.2s; }
 .type-sub   { font-size: 12px; font-weight: 400; transition: color 0.2s; }
 
 /* Inactive */
@@ -500,20 +598,20 @@ body {
 
 /* Active borders + per-type colours */
 #card-upper.active   { border-color: rgba(147,197,253,0.7); }
-#card-upper.active   .type-sub   { color: #93c5fd; }
-#card-upper.active   .type-label { color: #93c5fd; }
+#card-upper.active   .type-sub   { color: var(--accent-upper); }
+#card-upper.active   .type-label { color: var(--accent-upper); }
 
 #card-lower.active   { border-color: rgba(200,215,235,0.7); }
 #card-lower.active   .type-sub   { color: #8899b8; }
-#card-lower.active   .type-label { color: #e2e8f0; }
+#card-lower.active   .type-label { color: var(--accent-lower); }
 
 #card-numbers.active { border-color: rgba(74,222,128,0.7); }
-#card-numbers.active .type-sub   { color: #4ade80; }
-#card-numbers.active .type-label { color: #4ade80; }
+#card-numbers.active .type-sub   { color: var(--accent-numbers); }
+#card-numbers.active .type-label { color: var(--accent-numbers); }
 
 #card-symbols.active { border-color: rgba(251,146,60,0.7); }
-#card-symbols.active .type-sub   { color: #fb923c; }
-#card-symbols.active .type-label { color: #fb923c; }
+#card-symbols.active .type-sub   { color: var(--accent-symbols); }
+#card-symbols.active .type-label { color: var(--accent-symbols); }
 
 /* Toggle switch — enlarged for mobile */
 .toggle-switch { position: relative; width: 48px; height: 24px; flex-shrink: 0; cursor: pointer; }
@@ -535,14 +633,14 @@ body {
     transition: transform 0.2s, background 0.2s;
 }
 
-#card-upper   input:checked ~ .toggle-track { background: rgba(147,197,253,0.18); border-color: #93c5fd; }
-#card-upper   input:checked ~ .toggle-track::after { transform: translateX(24px); background: #93c5fd; }
+#card-upper   input:checked ~ .toggle-track { background: rgba(147,197,253,0.18); border-color: var(--accent-upper); }
+#card-upper   input:checked ~ .toggle-track::after { transform: translateX(24px); background: var(--accent-upper); }
 #card-lower   input:checked ~ .toggle-track { background: rgba(200,215,235,0.12); border-color: #9aabbb; }
-#card-lower   input:checked ~ .toggle-track::after { transform: translateX(24px); background: #e2e8f0; }
-#card-numbers input:checked ~ .toggle-track { background: rgba(74,222,128,0.16); border-color: #4ade80; }
-#card-numbers input:checked ~ .toggle-track::after { transform: translateX(24px); background: #4ade80; }
-#card-symbols input:checked ~ .toggle-track { background: rgba(251,146,60,0.16); border-color: #fb923c; }
-#card-symbols input:checked ~ .toggle-track::after { transform: translateX(24px); background: #fb923c; }
+#card-lower   input:checked ~ .toggle-track::after { transform: translateX(24px); background: var(--accent-lower); }
+#card-numbers input:checked ~ .toggle-track { background: rgba(74,222,128,0.16); border-color: var(--accent-numbers); }
+#card-numbers input:checked ~ .toggle-track::after { transform: translateX(24px); background: var(--accent-numbers); }
+#card-symbols input:checked ~ .toggle-track { background: rgba(251,146,60,0.16); border-color: var(--accent-symbols); }
+#card-symbols input:checked ~ .toggle-track::after { transform: translateX(24px); background: var(--accent-symbols); }
 
 /* ── Symbol settings icon + actions row ── */
 .type-card-actions { display: flex; align-items: center; gap: 8px; }
@@ -562,7 +660,7 @@ body {
 .sym-settings-btn svg { display: block; }
 .sym-settings-btn.visible { display: flex; }
 .sym-settings-btn:hover { color: rgba(251, 146, 60, 0.85); background: rgba(251, 146, 60, 0.14); border-color: rgba(251, 146, 60, 0.45); }
-.sym-settings-btn.active { color: #fb923c; background: rgba(251, 146, 60, 0.16); border-color: #fb923c; }
+.sym-settings-btn.active { color: var(--accent-symbols); background: rgba(251, 146, 60, 0.16); border-color: var(--accent-symbols); }
 
 /* ── Symbol sub-options (now a grid sibling of #card-symbols) ── */
 .symbol-options {
@@ -571,7 +669,7 @@ body {
     overflow: hidden;
     transition: max-height 0.35s ease;
     margin-top: -8px;
-    background: rgba(13, 13, 32, 0.6);
+    background: var(--card-bg);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     border: none;
@@ -606,12 +704,13 @@ body {
 }
 
 .sym-opt-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.sym-opt-row label { font-size: 12px; color: #9999cc; white-space: nowrap; }
+.sym-opt-row label { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
 .sym-opt-row input[type="range"] { flex: 1; min-width: 80px; }
-.sym-count-val { font-size: 12px; color: #fb923c; min-width: 32px; text-align: right; }
+.sym-count-val { font-size: 12px; color: var(--accent-symbols); min-width: 32px; text-align: right; }
 
 /* Custom orange symbol slider — matches length slider styling */
 #sym-pct-slider {
+    --fill: var(--accent-symbols);
     display: block;
     -webkit-appearance: none;
     appearance: none;
@@ -619,15 +718,15 @@ body {
     border-radius: 2px;
     outline: none;
     cursor: pointer;
-    background: linear-gradient(to right, #fb923c 25%, #1e1e3a 25%);
+    background: linear-gradient(to right, var(--fill) 25%, var(--slider-track) 25%);
 }
 #sym-pct-slider::-webkit-slider-thumb {
     -webkit-appearance: none;
     width: 24px; height: 24px;
     border-radius: 50%;
-    background: #fb923c;
+    background: var(--accent-symbols);
     cursor: pointer;
-    border: 2px solid #16213e;
+    border: 2px solid var(--thumb-ring);
     box-shadow: 0 0 0 2px rgba(251,146,60,0.28);
     transition: box-shadow 0.15s, transform 0.1s;
 }
@@ -638,9 +737,9 @@ body {
 #sym-pct-slider::-moz-range-thumb {
     width: 24px; height: 24px;
     border-radius: 50%;
-    background: #fb923c;
+    background: var(--accent-symbols);
     cursor: pointer;
-    border: 2px solid #16213e;
+    border: 2px solid var(--thumb-ring);
 }
 
 /* Symbol picker */
@@ -651,7 +750,7 @@ body {
     margin-bottom: 8px;
 }
 .sym-picker-label {
-    font-size: 12px; color: #8888aa;
+    font-size: 12px; color: var(--text-dim);
     text-transform: none; letter-spacing: normal;
 }
 .sym-chip-controls { display: flex; gap: 4px; }
@@ -659,22 +758,22 @@ body {
     background: transparent;
     border: 1px solid #2d2d5e;
     border-radius: 4px;
-    color: #9999cc;
+    color: var(--text-muted);
     cursor: pointer;
     font-family: 'Noto Sans', sans-serif;
     font-size: 12px;
     padding: 4px 8px;
     transition: border-color 0.1s, color 0.1s;
 }
-.sym-chip-controls button:hover { border-color: #fb923c; color: #fb923c; }
-.sym-chip-controls button.active { border-color: #fb923c; color: #fb923c; background: rgba(251, 146, 60, 0.12); }
+.sym-chip-controls button:hover { border-color: var(--accent-symbols); color: var(--accent-symbols); }
+.sym-chip-controls button.active { border-color: var(--accent-symbols); color: var(--accent-symbols); background: rgba(251, 146, 60, 0.12); }
 
 .symbol-picker { display: flex; flex-wrap: wrap; gap: 4px; }
 .sym-chip {
     background: #1a1a3e;
     border: 1px solid #2a2a5a;
     border-radius: 4px;
-    color: #fb923c;
+    color: var(--accent-symbols);
     cursor: pointer;
     font-family: 'Noto Sans', sans-serif;
     font-size: 14px;
@@ -688,7 +787,7 @@ body {
     user-select: none;
     line-height: 1;
 }
-.sym-chip:hover { border-color: #fb923c; background: #1f1008; }
+.sym-chip:hover { border-color: var(--accent-symbols); background: #1f1008; }
 .sym-chip.off { background: transparent; border-color: #1c1c38; color: #2a2a4a; }
 
 /* ── Mobile compact overrides (must come after base rules) ── */
