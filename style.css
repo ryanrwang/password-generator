@@ -61,8 +61,10 @@ body {
 /* ── Mode switcher (Password / Username) ──
    Frosted-glass pill with a sliding, glowing thumb. The thumb's position is
    pure CSS off body[data-mode]; JS only re-adds .switched to replay the
-   flare + sheen. Shadows are tokenised so the keyframes can extend them. */
+   flare + sheen. Shadows are tokenised so the keyframes can extend them, and
+   --dir (from data-dir, set by JS) mirrors every effect toward the target. */
 .mode-switch {
+    --dir: 1;
     --glass-shadow:
         inset 0 1px 0 rgba(255, 255, 255, 0.18),
         inset 0 -1px 0 rgba(0, 0, 0, 0.28),
@@ -114,10 +116,22 @@ body {
     inset: 0;
     background: linear-gradient(115deg,
         transparent 30%, rgba(255, 255, 255, 0.6) 50%, transparent 70%);
-    transform: translateX(-130%);
+    transform: translateX(calc(-130% * var(--dir)));
     opacity: 0;
 }
+.mode-switch[data-dir="left"] { --dir: -1; }
 body[data-mode="username"] .mode-thumb { transform: translateX(100%); }
+
+/* Inner glow hugging the thumb's leading edge, lit only during the flare */
+.mode-thumb::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+        circle at calc(50% + 38% * var(--dir)) 50%,
+        rgba(255, 255, 255, 0.55), rgba(200, 185, 255, 0.25) 35%, transparent 65%);
+    opacity: 0;
+}
 
 .mode-btn {
     position: relative;
@@ -148,7 +162,8 @@ body[data-mode="username"] .mode-thumb { transform: translateX(100%); }
 .mode-switch.switched .mode-thumb {
     animation: thumbFlare 0.75s ease-out, thumbBreathe 3.4s ease-in-out 0.75s infinite;
 }
-.mode-switch.switched .mode-thumb::after { animation: thumbSheen 0.65s ease-out 0.12s; }
+.mode-switch.switched .mode-thumb::after  { animation: thumbSheen 0.65s ease-out 0.12s; }
+.mode-switch.switched .mode-thumb::before { animation: thumbLead 0.8s ease-out; }
 
 @keyframes thumbBreathe {
     0%, 100% { box-shadow: var(--thumb-shadow), 0 0 14px rgba(167, 139, 250, 0.3); }
@@ -162,8 +177,8 @@ body[data-mode="username"] .mode-thumb { transform: translateX(100%); }
     28% {
         filter: brightness(1.6);
         box-shadow: var(--thumb-shadow),
-            0 0 28px rgba(255, 255, 255, 0.45),
-            0 0 64px rgba(167, 139, 250, 0.6);
+            calc(10px * var(--dir)) 0 28px rgba(255, 255, 255, 0.45),
+            calc(22px * var(--dir)) 0 64px rgba(167, 139, 250, 0.6);
     }
     100% {
         filter: brightness(1);
@@ -171,12 +186,17 @@ body[data-mode="username"] .mode-thumb { transform: translateX(100%); }
     }
 }
 @keyframes thumbSheen {
-    0%   { transform: translateX(-130%); opacity: 1; }
-    100% { transform: translateX(130%);  opacity: 0; }
+    0%   { transform: translateX(calc(-130% * var(--dir))); opacity: 1; }
+    100% { transform: translateX(calc(130% * var(--dir)));  opacity: 0; }
+}
+@keyframes thumbLead {
+    0%   { opacity: 0; }
+    30%  { opacity: 1; }
+    100% { opacity: 0; }
 }
 @keyframes switchRing {
     0%   { box-shadow: var(--glass-shadow), 0 0 0 0 rgba(200, 185, 255, 0.5); }
-    100% { box-shadow: var(--glass-shadow), 0 0 0 20px rgba(200, 185, 255, 0); }
+    100% { box-shadow: var(--glass-shadow), calc(16px * var(--dir)) 0 8px 16px rgba(200, 185, 255, 0); }
 }
 
 /* What each mode shows. The character cards, strength bar and its effects
