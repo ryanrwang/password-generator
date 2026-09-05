@@ -937,24 +937,23 @@ function applyMode(next) {
     updateContentOffset();   // strength bar comes and goes with the mode
 }
 
-// Page shift: the display content and the settings slide out toward the
-// side being left, the DOM swaps, then they slide in from the other side.
-// Phases are CSS keyframes on body.shift-out / body.shift-in; --shift-dir
-// mirrors them. A shift in flight swallows further switches until it lands.
-const elOptionsInner = document.querySelector('.options-inner');
+// Page shift: the display content and the whole settings sheet slide out
+// toward the side being left, the DOM swaps, then they slide in from the
+// other side. Phases are CSS keyframes on body.shift-out / body.shift-in;
+// --shift-dir mirrors them. A shift in flight swallows further switches.
 let shifting = false;
 
 function shiftPhase(cls) {
     return new Promise(resolve => {
         let timer;
         const done = (e) => {
-            if (e && e.target !== elOptionsInner) return;
+            if (e && e.target !== elSettingsCard) return;
             clearTimeout(timer);
-            elOptionsInner.removeEventListener('animationend', done);
+            elSettingsCard.removeEventListener('animationend', done);
             document.body.classList.remove(cls);
             resolve();
         };
-        elOptionsInner.addEventListener('animationend', done);
+        elSettingsCard.addEventListener('animationend', done);
         // Insurance against a throttled/background tab never firing the event.
         timer = setTimeout(done, 700);
         document.body.classList.add(cls);

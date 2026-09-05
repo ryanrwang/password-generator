@@ -185,32 +185,34 @@ body[data-mode="username"] .type-cards,
 body[data-mode="username"] .strength-wrap { display: none; }
 body[data-mode="username"] .username-options { display: block; }
 
-/* Page shift between modes — see setMode() in app.js. Both phases carry
-   the card offset so the display content doesn't jump off its resting
-   translateY; --shift-dir (1 = heading right) mirrors the travel. */
+/* Page shift between modes — see setMode() in app.js. The display content
+   and the whole settings sheet travel as two panels: out toward the side
+   being left, then in from the other. Both keyframes carry each element's
+   resting translateY (--card-offset / --card-y) so nothing jumps;
+   --shift-dir (1 = heading right) mirrors the travel. */
 body.shift-out .password-content,
 body.shift-in  .password-content,
-body.shift-out .options-inner,
-body.shift-in  .options-inner { will-change: transform, opacity; }
+body.shift-out .settings-card,
+body.shift-in  .settings-card { will-change: transform, opacity; }
 
 body.shift-out .password-content { animation: displayShiftOut 0.18s ease-in forwards; }
 body.shift-in  .password-content { animation: displayShiftIn  0.30s cubic-bezier(0.2, 0.8, 0.2, 1); }
-body.shift-out .options-inner    { animation: optionsShiftOut 0.18s ease-in forwards; }
-body.shift-in  .options-inner    { animation: optionsShiftIn  0.30s cubic-bezier(0.2, 0.8, 0.2, 1); }
+body.shift-out .settings-card    { animation: panelShiftOut   0.18s ease-in forwards; }
+body.shift-in  .settings-card    { animation: panelShiftIn    0.30s cubic-bezier(0.2, 0.8, 0.2, 1); }
 
 @keyframes displayShiftOut {
-    to { transform: translateY(var(--card-offset, -24px)) translateX(calc(-56px * var(--shift-dir, 1))); opacity: 0; }
+    to { transform: translateY(var(--card-offset, -24px)) translateX(calc(-72px * var(--shift-dir, 1))); opacity: 0; }
 }
 @keyframes displayShiftIn {
-    from { transform: translateY(var(--card-offset, -24px)) translateX(calc(56px * var(--shift-dir, 1))); opacity: 0; }
+    from { transform: translateY(var(--card-offset, -24px)) translateX(calc(72px * var(--shift-dir, 1))); opacity: 0; }
     to   { transform: translateY(var(--card-offset, -24px)) translateX(0); opacity: 1; }
 }
-@keyframes optionsShiftOut {
-    to { transform: translateX(calc(-40px * var(--shift-dir, 1))); opacity: 0; }
+@keyframes panelShiftOut {
+    to { transform: translateY(var(--card-y)) translateX(calc(-96px * var(--shift-dir, 1))); opacity: 0; }
 }
-@keyframes optionsShiftIn {
-    from { transform: translateX(calc(40px * var(--shift-dir, 1))); opacity: 0; }
-    to   { transform: translateX(0); opacity: 1; }
+@keyframes panelShiftIn {
+    from { transform: translateY(var(--card-y)) translateX(calc(96px * var(--shift-dir, 1))); opacity: 0; }
+    to   { transform: translateY(var(--card-y)) translateX(0); opacity: 1; }
 }
 
 /* Usernames: break between words before breaking inside one */
@@ -534,14 +536,15 @@ body[data-mode="username"] .password-display {
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-bottom: none;
     border-radius: 24px 24px 0 0;
-    transform: translateY(calc(100% - 48px));
+    --card-y: calc(100% - 48px);   /* open/closed resting position */
+    transform: translateY(var(--card-y));
     transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
     max-height: 80vh;
     display: flex;
     flex-direction: column;
 }
 .settings-card.open {
-    transform: translateY(0);
+    --card-y: 0px;
 }
 
 .settings-card-handle {
