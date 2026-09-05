@@ -16,6 +16,11 @@
     --accent-numbers: #4ade80;
     --accent-symbols: #fb923c;
 
+    /* Username mode — words alternate these two so a no-separator join
+       (SwiftFalcon) still reads as two words */
+    --accent-word-a:  var(--accent-upper);
+    --accent-word-b:  var(--accent-lower);
+
     /* Text */
     --text-body:      #e0e0e0;
     --text-muted:     #9999cc;
@@ -52,6 +57,171 @@ body {
     transition: background 0.65s ease;
     isolation: isolate;
 }
+
+/* ── Mode switcher (Password / Username) ──
+   Frosted-glass pill with a sliding, glowing thumb. The thumb's position is
+   pure CSS off body[data-mode]; JS only re-adds .switched to replay the
+   flare + sheen. Shadows are tokenised so the keyframes can extend them. */
+.mode-switch {
+    --glass-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.18),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.28),
+        0 10px 30px rgba(0, 0, 0, 0.38);
+    position: absolute;
+    top: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: 3px;
+    border-radius: 999px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0.035));
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    box-shadow: var(--glass-shadow), 0 0 0 0 rgba(127, 90, 240, 0);
+    backdrop-filter: blur(22px) saturate(170%);
+    -webkit-backdrop-filter: blur(22px) saturate(170%);
+}
+.mode-thumb {
+    --thumb-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.22),
+        inset 0 1px 0 rgba(255, 255, 255, 0.5),
+        inset 0 -1px 1px rgba(0, 0, 0, 0.18),
+        0 2px 8px rgba(0, 0, 0, 0.3);
+    position: absolute;
+    top: 3px;
+    bottom: 3px;
+    left: 3px;
+    width: calc(50% - 3px);
+    border-radius: 999px;
+    overflow: hidden;
+    z-index: -1;   /* above the glass, beneath the labels */
+    background: linear-gradient(180deg,
+        rgba(255, 255, 255, 0.26),
+        rgba(255, 255, 255, 0.12) 60%,
+        rgba(255, 255, 255, 0.16));
+    backdrop-filter: blur(6px) brightness(1.15);
+    -webkit-backdrop-filter: blur(6px) brightness(1.15);
+    box-shadow: var(--thumb-shadow), 0 0 14px rgba(167, 139, 250, 0.3);
+    /* springy overshoot as it slides across */
+    transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+    animation: thumbBreathe 3.4s ease-in-out infinite;
+}
+/* Sheen that sweeps across the thumb on switch */
+.mode-thumb::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(115deg,
+        transparent 30%, rgba(255, 255, 255, 0.6) 50%, transparent 70%);
+    transform: translateX(-130%);
+    opacity: 0;
+}
+body[data-mode="username"] .mode-thumb { transform: translateX(100%); }
+
+.mode-btn {
+    position: relative;
+    font-family: 'Noto Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 30px;
+    padding: 0 18px;
+    line-height: 1;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    transition: color 0.3s, text-shadow 0.3s;
+    -webkit-tap-highlight-color: transparent;
+}
+.mode-btn:hover  { color: rgba(255, 255, 255, 0.85); }
+.mode-btn.active { color: #fff; text-shadow: 0 0 10px rgba(255, 255, 255, 0.5); }
+
+/* Replayed on every switch: the thumb flares, a sheen sweeps it, and a ring
+   ripples out from the pill. */
+.mode-switch.switched            { animation: switchRing 0.9s ease-out; }
+.mode-switch.switched .mode-thumb {
+    animation: thumbFlare 0.75s ease-out, thumbBreathe 3.4s ease-in-out 0.75s infinite;
+}
+.mode-switch.switched .mode-thumb::after { animation: thumbSheen 0.65s ease-out 0.12s; }
+
+@keyframes thumbBreathe {
+    0%, 100% { box-shadow: var(--thumb-shadow), 0 0 14px rgba(167, 139, 250, 0.3); }
+    50%      { box-shadow: var(--thumb-shadow), 0 0 22px rgba(180, 160, 255, 0.5); }
+}
+@keyframes thumbFlare {
+    0% {
+        filter: brightness(1);
+        box-shadow: var(--thumb-shadow), 0 0 14px rgba(167, 139, 250, 0.3);
+    }
+    28% {
+        filter: brightness(1.6);
+        box-shadow: var(--thumb-shadow),
+            0 0 28px rgba(255, 255, 255, 0.45),
+            0 0 64px rgba(167, 139, 250, 0.6);
+    }
+    100% {
+        filter: brightness(1);
+        box-shadow: var(--thumb-shadow), 0 0 14px rgba(167, 139, 250, 0.3);
+    }
+}
+@keyframes thumbSheen {
+    0%   { transform: translateX(-130%); opacity: 1; }
+    100% { transform: translateX(130%);  opacity: 0; }
+}
+@keyframes switchRing {
+    0%   { box-shadow: var(--glass-shadow), 0 0 0 0 rgba(200, 185, 255, 0.5); }
+    100% { box-shadow: var(--glass-shadow), 0 0 0 20px rgba(200, 185, 255, 0); }
+}
+
+/* What each mode shows. The character cards, strength bar and its effects
+   only exist for secrets; username mode swaps in the word controls. */
+body[data-mode="username"] .type-cards,
+body[data-mode="username"] .strength-wrap { display: none; }
+body[data-mode="username"] .username-options { display: block; }
+
+/* Page shift between modes — see setMode() in app.js. The display content
+   and the whole settings sheet travel as two panels: out toward the side
+   being left, then in from the other. Both keyframes carry each element's
+   resting translateY (--card-offset / --card-y) so nothing jumps;
+   --shift-dir (1 = heading right) mirrors the travel. */
+body.shift-out .password-content,
+body.shift-in  .password-content,
+body.shift-out .settings-card,
+body.shift-in  .settings-card { will-change: transform, opacity; }
+
+body.shift-out .password-content { animation: displayShiftOut 0.18s ease-in forwards; }
+body.shift-in  .password-content { animation: displayShiftIn  0.30s cubic-bezier(0.2, 0.8, 0.2, 1); }
+body.shift-out .settings-card    { animation: panelShiftOut   0.18s ease-in forwards; }
+body.shift-in  .settings-card    { animation: panelShiftIn    0.30s cubic-bezier(0.2, 0.8, 0.2, 1); }
+
+@keyframes displayShiftOut {
+    to { transform: translateY(var(--card-offset, -24px)) translateX(calc(-72px * var(--shift-dir, 1))); opacity: 0; }
+}
+@keyframes displayShiftIn {
+    from { transform: translateY(var(--card-offset, -24px)) translateX(calc(72px * var(--shift-dir, 1))); opacity: 0; }
+    to   { transform: translateY(var(--card-offset, -24px)) translateX(0); opacity: 1; }
+}
+@keyframes panelShiftOut {
+    to { transform: translateY(var(--card-y)) translateX(calc(-96px * var(--shift-dir, 1))); opacity: 0; }
+}
+@keyframes panelShiftIn {
+    from { transform: translateY(var(--card-y)) translateX(calc(96px * var(--shift-dir, 1))); opacity: 0; }
+    to   { transform: translateY(var(--card-y)) translateX(0); opacity: 1; }
+}
+
+/* Usernames: break between words before breaking inside one */
+body[data-mode="username"] .password-display {
+    word-break: normal;
+    overflow-wrap: anywhere;
+}
+.un-word-a { color: var(--accent-word-a); }
+.un-word-b { color: var(--accent-word-b); }
 
 /* ── Impact effect on generate ── */
 .password-display.impact {
@@ -366,14 +536,15 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-bottom: none;
     border-radius: 24px 24px 0 0;
-    transform: translateY(calc(100% - 48px));
+    --card-y: calc(100% - 48px);   /* open/closed resting position */
+    transform: translateY(var(--card-y));
     transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
     max-height: 80vh;
     display: flex;
     flex-direction: column;
 }
 .settings-card.open {
-    transform: translateY(0);
+    --card-y: 0px;
 }
 
 .settings-card-handle {
@@ -506,7 +677,8 @@ body {
 .length-arrow:active {
     background: rgba(127, 90, 240, 0.2);
 }
-#length-num {
+#length-num,
+#words-num {
     width: 48px;
     background: transparent;
     border: none;
@@ -520,11 +692,13 @@ body {
     outline: none;
 }
 #length-num::-webkit-inner-spin-button,
-#length-num::-webkit-outer-spin-button {
+#length-num::-webkit-outer-spin-button,
+#words-num::-webkit-inner-spin-button,
+#words-num::-webkit-outer-spin-button {
     -webkit-appearance: none;
     display: none;
 }
-#length-num { -moz-appearance: textfield; }
+#length-num, #words-num { -moz-appearance: textfield; }
 
 /* Sleek custom range slider — --fill is picked up by updateSliderTrack() */
 #length-slider {
@@ -789,6 +963,73 @@ body {
 }
 .sym-chip:hover { border-color: var(--accent-symbols); background: #1f1008; }
 .sym-chip.off { background: transparent; border-color: #1c1c38; color: #2a2a4a; }
+
+/* ── Username controls (shown via body[data-mode="username"] above) ── */
+.username-options { display: none; margin-bottom: 16px; }
+.un-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+@media (max-width: 480px) {
+    .un-grid { grid-template-columns: 1fr; }
+}
+.un-card { border-color: rgba(127, 90, 240, 0.28); }
+.username-options > .un-card + .un-card { margin-top: 8px; }
+.un-card .type-label { color: #9070d8; }
+.un-card-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 16px;
+}
+.un-rows { flex-direction: column; align-items: stretch; }
+.un-row  { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.un-row-label { font-size: 12px; color: var(--text-muted); min-width: 72px; }
+
+/* Radio-style chips */
+.chip-group { display: flex; flex-wrap: wrap; gap: 4px; }
+.chip {
+    background: transparent;
+    border: 1px solid #2d2d5e;
+    border-radius: 4px;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-family: 'Noto Sans', sans-serif;
+    font-size: 12px;
+    padding: 5px 10px;
+    min-height: 28px;
+    transition: border-color 0.1s, color 0.1s, background 0.1s;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+.chip-glyph  { min-width: 32px; font-family: 'Arvo', serif; font-size: 14px; line-height: 1; }
+.chip:hover  { border-color: var(--accent-purple); color: #c4b5fd; }
+.chip.active { border-color: var(--accent-purple); color: #c4b5fd; background: rgba(127, 90, 240, 0.16); }
+
+#required-words {
+    flex: 1;
+    min-width: 160px;
+    background: #1a1a3e;
+    border: 1px solid #2a2a5a;
+    border-radius: 4px;
+    color: var(--text-body);
+    font-family: 'Noto Sans', sans-serif;
+    font-size: 14px;
+    padding: 6px 10px;
+    outline: none;
+    transition: border-color 0.15s;
+}
+#required-words::placeholder { color: var(--text-label-off); }
+#required-words:focus { border-color: var(--accent-purple); }
+
+@media (max-width: 768px) {
+    .un-card-inner { padding: 12px; }
+    .un-row-label  { min-width: 64px; }
+}
 
 /* ── Mobile compact overrides (must come after base rules) ── */
 @media (max-width: 768px) {

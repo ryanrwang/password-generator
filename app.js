@@ -10,11 +10,13 @@ const CHAR_SETS = {
     numbers: '0123456789',
 };
 const HTML_ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' };
+const escapeHtml = str => [...str].map(ch => HTML_ESC[ch] ?? ch).join('');
 
 const elPassword      = document.getElementById('password');
 const elCopyBtn       = document.getElementById('copy-btn');
 const elStrengthBar   = document.getElementById('strength-bar');
 const elTopPanel      = document.querySelector('.fullscreen-display');
+const elModeSwitch    = document.querySelector('.mode-switch');
 
 // Sparkle field — inserted as first child so z-index: -1 works within panel context
 const elSparkleField = document.createElement('div');
@@ -50,7 +52,8 @@ const checkboxes = {
     symbols: document.getElementById('opt-symbols'),
 };
 
-let currentPassword = '';
+let currentOutput = '';
+let mode = 'password';   // 'password' | 'username' — set via setMode()
 let sparkleState    = null;   // null | 'green' | 'amazing' | 'warp-low' | 'warp-med' | 'warp-high'
 let elecSparkState  = null;   // null | 'low' | 'med' | 'high'
 
@@ -87,13 +90,13 @@ function charClass(ch) {
     return 'ch-sym';
 }
 function renderPassword(pw) {
-    currentPassword = pw;
+    currentOutput = pw;
     elPassword.innerHTML = [...pw]
         .map(ch => `<span class="${charClass(ch)}">${HTML_ESC[ch] ?? ch}</span>`)
         .join('');
 }
 function showError(msg) {
-    currentPassword = '';
+    currentOutput = '';
     elPassword.innerHTML = `<span class="pw-error">${msg}</span>`;
 }
 
@@ -110,14 +113,14 @@ function flashCopyState(label, cls) {
     }, 2000);
 }
 function copyPassword() {
-    if (!currentPassword) return;
+    if (!currentOutput) return;
     // Absent outside secure contexts (plain http://), and can reject if the
     // permission is denied — either way the user needs to be told.
     if (!navigator.clipboard?.writeText) {
         flashCopyState('Copy failed', 'copy-failed');
         return;
     }
-    navigator.clipboard.writeText(currentPassword).then(() => {
+    navigator.clipboard.writeText(currentOutput).then(() => {
         spawnCopySparks();
         flashCopyState('Copied!', 'copied');
     }).catch(() => flashCopyState('Copy failed', 'copy-failed'));
@@ -504,9 +507,128 @@ function updateElecSparks(len) {
     elElecSparks.style.opacity = '1';
 }
 
+// ── Username mode ──
+// Real words from words.js / words-eff.js, joined per the chip options. The
+// word lists are plain data; every draw still goes through cryptoRandInt.
+const MIN_WORDS = 1;
+const MAX_WORDS = 4;
+const FALLBACK_WORDS = 2;
+
+const elWordsNum  = document.getElementById('words-num');
+const elRequired  = document.getElementById('required-words');
+const elWordsDown = document.getElementById('words-arrow-down');
+const elWordsUp   = document.getElementById('words-arrow-up');
+
+// Filled from the .active chips at startup, so the HTML is the single source
+// of truth for defaults. Keys: list, separator, casing, digits, placement.
+const usernameOpts = {};
+
+elWordsNum.min = MIN_WORDS;
+elWordsNum.max = MAX_WORDS;
+
+function getWordCount() {
+    const v = parseInt(elWordsNum.value, 10);
+    return isNaN(v) ? FALLBACK_WORDS : Math.min(MAX_WORDS, Math.max(MIN_WORDS, v));
+}
+function getRequiredWords() {
+    return elRequired.value.split(',').map(w => w.trim()).filter(Boolean);
+}
+
+// Shortest entry per pool — reserves room for later slots when fitting words
+// under the length cap.
+const POOL_MIN = new Map([CURATED_ADJECTIVES, CURATED_NOUNS, EFF_WORDS]
+    .map(pool => [pool, pool.reduce((m, w) => Math.min(m, w.length), Infinity)]));
+
+// Curated names read as adjective(s) + noun, so the final random slot draws a
+// noun. The dictionary list is one flat pool.
+function wordPool(list, slot, slotCount) {
+    if (list === 'eff') return EFF_WORDS;
+    return slot === slotCount - 1 ? CURATED_NOUNS : CURATED_ADJECTIVES;
+}
+
+// Draw `count` distinct words whose combined length fits `budget`. Each slot
+// picks uniformly from the words that still leave room for the shortest
+// possible remainder, so a tight cap favours shorter words instead of failing.
+function pickWords(list, count, budget) {
+    const pools = Array.from({ length: count }, (_, i) => wordPool(list, i, count));
+    const words = [];
+    for (let i = 0; i < count; i++) {
+        let reserve = 0;
+        for (let j = i + 1; j < count; j++) reserve += POOL_MIN.get(pools[j]);
+        const cap = budget - reserve;
+        const fit = pools[i].filter(w => w.length <= cap && !words.includes(w));
+        if (fit.length === 0) return null;
+        const w = fit[cryptoRandInt(fit.length)];
+        words.push(w);
+        budget -= w.length;
+    }
+    return words;
+}
+
+// Returns display parts [{ type: 'word' | 'sep' | 'digits', text }], or null
+// when the cap can't hold the required words plus separators and digits.
+function generateUsername(maxLen) {
+    const o = usernameOpts;
+    const required = getRequiredWords();
+    // Required words count toward the word total; extras still all appear.
+    const total = Math.max(getWordCount(), required.length);
+    const fixed = required.reduce((n, w) => n + w.length, 0)
+                + o.separator.length * (total - 1) + o.digits;
+    const budget = maxLen - fixed;
+    if (budget < 0) return null;
+    const random = pickWords(o.list, total - required.length, budget);
+    if (!random) return null;
+
+    let words;
+    if      (o.placement === 'start') words = [...required, ...random];
+    else if (o.placement === 'end')   words = [...random, ...required];
+    else {
+        words = [...random];
+        for (const w of required) words.splice(cryptoRandInt(words.length + 1), 0, w);
+    }
+
+    // Casing only touches the first letter, so a required word keeps whatever
+    // internal capitalisation the user typed.
+    const cased = words.map((w, i) => {
+        const upper = o.casing === 'capital' || (o.casing === 'camel' && i > 0);
+        return (upper ? w[0].toUpperCase() : w[0].toLowerCase()) + w.slice(1);
+    });
+
+    const parts = [];
+    cased.forEach((w, i) => {
+        if (i > 0 && o.separator) parts.push({ type: 'sep', text: o.separator });
+        parts.push({ type: 'word', text: w });
+    });
+    if (o.digits > 0) {
+        let d = '';
+        for (let i = 0; i < o.digits; i++) d += cryptoRandInt(10);
+        parts.push({ type: 'digits', text: d });
+    }
+    return parts;
+}
+
+// Words alternate two accents so a no-separator join still reads as words.
+function renderUsername(parts) {
+    currentOutput = parts.map(p => p.text).join('');
+    let wordIdx = 0;
+    elPassword.innerHTML = parts.map(p => {
+        let cls = 'ch-sym';
+        if (p.type === 'word')   cls = wordIdx++ % 2 ? 'un-word-b' : 'un-word-a';
+        if (p.type === 'digits') cls = 'ch-num';
+        return `<span class="${cls}">${escapeHtml(p.text)}</span>`;
+    }).join('');
+}
+
 // ── Generate ──
 function generate() {
     const length = getLength();
+    if (mode === 'username') {
+        const parts = generateUsername(length);
+        if (parts) renderUsername(parts);
+        else showError('Max length too short for these options.');
+        updateStrengthUI(null);   // a public handle gets no bar, glow or sparkles
+        return;
+    }
     // Symbols enabled with every symbol deselected contributes nothing, so
     // drop it and generate from whatever is left.
     const enabled = getEnabledKeys()
@@ -565,7 +687,7 @@ elLengthNum.addEventListener('blur', () => {
 
 document.getElementById('generate-btn').addEventListener('click', () => {
     generate();
-    if (currentPassword) triggerImpact();
+    if (currentOutput) triggerImpact();
 });
 
 // ── Settings card toggle ──
@@ -592,7 +714,8 @@ function updateContentOffset() {
     const cardH = elSettingsCard.offsetHeight;
     const contentH = elPasswordContent.offsetHeight;
     const naturalTop = (viewportH - contentH) / 2;
-    const minPad = 16;
+    // Keep the content clear of the mode switcher pinned at the panel top
+    const minPad = elModeSwitch.offsetTop + elModeSwitch.offsetHeight + 16;
 
     // Shift content up by half the card height, but never above viewport top
     const maxUpShift = Math.max(0, naturalTop - minPad);
@@ -738,6 +861,125 @@ motionQuery.addEventListener('change', () => {
     generate();
 });
 
+// ── Username controls ──
+function updateWordArrowStates() {
+    const v = getWordCount();
+    elWordsDown.disabled = v <= MIN_WORDS;
+    elWordsUp.disabled   = v >= MAX_WORDS;
+}
+function adjustWords(delta) {
+    elWordsNum.value = Math.min(MAX_WORDS, Math.max(MIN_WORDS, getWordCount() + delta));
+    updateWordArrowStates();
+    generate();
+}
+elWordsDown.addEventListener('click', () => adjustWords(-1));
+elWordsUp.addEventListener('click',   () => adjustWords(1));
+elWordsNum.addEventListener('input', () => { updateWordArrowStates(); scheduleGenerate(); });
+elWordsNum.addEventListener('blur',  () => {
+    elWordsNum.value = getWordCount();
+    updateWordArrowStates();
+    generate();
+});
+elRequired.addEventListener('input', scheduleGenerate);
+
+// Radio-style chip groups: data-opt names the usernameOpts key, data-value
+// the value. `digits` is numeric; everything else is a string.
+function readChip(group, chip) {
+    const opt = group.dataset.opt;
+    usernameOpts[opt] = opt === 'digits' ? parseInt(chip.dataset.value, 10) : chip.dataset.value;
+}
+document.querySelectorAll('.chip-group[data-opt]').forEach(group => {
+    const chips = group.querySelectorAll('.chip');
+    readChip(group, group.querySelector('.chip.active'));
+    chips.forEach(chip => chip.addEventListener('click', () => {
+        chips.forEach(c => {
+            const on = c === chip;
+            c.classList.toggle('active', on);
+            c.setAttribute('aria-checked', on);
+        });
+        readChip(group, chip);
+        generate();
+    }));
+});
+
+// ── Mode switcher ──
+// body[data-mode] drives which controls and effects the CSS shows; the URL
+// hash mirrors it so #username is linkable.
+const elModeBtns    = document.querySelectorAll('.mode-btn');
+const elLengthLabel = document.getElementById('length-label');
+const modeFromHash  = () => location.hash === '#username' ? 'username' : 'password';
+
+// Re-adding the class restarts the CSS flare/sheen keyframes.
+function flashModeSwitch() {
+    if (reducedMotion()) return;
+    elModeSwitch.classList.remove('switched');
+    void elModeSwitch.offsetWidth;
+    elModeSwitch.classList.add('switched');
+}
+
+// Swap the DOM to `next` immediately (no page motion).
+function applyMode(next) {
+    mode = next;
+    document.body.dataset.mode = mode;
+    elModeBtns.forEach(b => {
+        const on = b.dataset.mode === mode;
+        b.classList.toggle('active', on);
+        b.setAttribute('aria-selected', on);
+    });
+    const isUser = mode === 'username';
+    elLengthLabel.textContent = isUser ? 'Max length' : 'Length';
+    document.title = isUser ? 'Username Generator' : 'Password Generator';
+    const hash = isUser ? '#username' : '';
+    if (location.hash !== hash) {
+        history.replaceState(null, '', location.pathname + location.search + hash);
+    }
+    generate();
+    updateContentOffset();   // strength bar comes and goes with the mode
+}
+
+// Page shift: the display content and the whole settings sheet slide out
+// toward the side being left, the DOM swaps, then they slide in from the
+// other side. Phases are CSS keyframes on body.shift-out / body.shift-in;
+// --shift-dir mirrors them. A shift in flight swallows further switches.
+let shifting = false;
+
+function shiftPhase(cls) {
+    return new Promise(resolve => {
+        let timer;
+        const done = (e) => {
+            if (e && e.target !== elSettingsCard) return;
+            clearTimeout(timer);
+            elSettingsCard.removeEventListener('animationend', done);
+            document.body.classList.remove(cls);
+            resolve();
+        };
+        elSettingsCard.addEventListener('animationend', done);
+        // Insurance against a throttled/background tab never firing the event.
+        timer = setTimeout(done, 700);
+        document.body.classList.add(cls);
+    });
+}
+
+async function setMode(next, { animate = true } = {}) {
+    if (shifting) return;
+    if (!animate || reducedMotion()) { applyMode(next); return; }
+    shifting = true;
+    flashModeSwitch();
+    // Heading to the right-hand tab: content exits left, enters from the right.
+    document.body.style.setProperty('--shift-dir', next === 'username' ? '1' : '-1');
+    await shiftPhase('shift-out');
+    applyMode(next);
+    await shiftPhase('shift-in');
+    shifting = false;
+}
+elModeBtns.forEach(b => b.addEventListener('click', () => {
+    if (b.dataset.mode !== mode) setMode(b.dataset.mode);
+}));
+window.addEventListener('hashchange', () => {
+    if (modeFromHash() !== mode) setMode(modeFromHash());
+});
+
 updateArrowStates();
+updateWordArrowStates();
 updateSymbolQuickButtons();
-generate();
+setMode(modeFromHash(), { animate: false });
