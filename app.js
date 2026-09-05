@@ -918,8 +918,6 @@ function flashModeSwitch() {
 }
 
 function setMode(next, { animate = true } = {}) {
-    // Direction of travel — the CSS flare, sheen and ring lean this way.
-    elModeSwitch.dataset.dir = next === 'username' ? 'right' : 'left';
     mode = next;
     if (animate) flashModeSwitch();
     document.body.dataset.mode = mode;
