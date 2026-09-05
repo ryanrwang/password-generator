@@ -909,8 +909,17 @@ const elModeBtns    = document.querySelectorAll('.mode-btn');
 const elLengthLabel = document.getElementById('length-label');
 const modeFromHash  = () => location.hash === '#username' ? 'username' : 'password';
 
-function setMode(next) {
+// Re-adding the class restarts the CSS flare/sheen keyframes.
+function flashModeSwitch() {
+    if (reducedMotion()) return;
+    elModeSwitch.classList.remove('switched');
+    void elModeSwitch.offsetWidth;
+    elModeSwitch.classList.add('switched');
+}
+
+function setMode(next, { animate = true } = {}) {
     mode = next;
+    if (animate) flashModeSwitch();
     document.body.dataset.mode = mode;
     elModeBtns.forEach(b => {
         const on = b.dataset.mode === mode;
@@ -937,4 +946,4 @@ window.addEventListener('hashchange', () => {
 updateArrowStates();
 updateWordArrowStates();
 updateSymbolQuickButtons();
-setMode(modeFromHash());
+setMode(modeFromHash(), { animate: false });
