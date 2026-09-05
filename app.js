@@ -917,9 +917,9 @@ function flashModeSwitch() {
     elModeSwitch.classList.add('switched');
 }
 
-function setMode(next, { animate = true } = {}) {
+// Swap the DOM to `next` immediately (no page motion).
+function applyMode(next) {
     mode = next;
-    if (animate) flashModeSwitch();
     document.body.dataset.mode = mode;
     elModeBtns.forEach(b => {
         const on = b.dataset.mode === mode;
@@ -935,6 +935,43 @@ function setMode(next, { animate = true } = {}) {
     }
     generate();
     updateContentOffset();   // strength bar comes and goes with the mode
+}
+
+// Page shift: the display content and the settings slide out toward the
+// side being left, the DOM swaps, then they slide in from the other side.
+// Phases are CSS keyframes on body.shift-out / body.shift-in; --shift-dir
+// mirrors them. A shift in flight swallows further switches until it lands.
+const elOptionsInner = document.querySelector('.options-inner');
+let shifting = false;
+
+function shiftPhase(cls) {
+    return new Promise(resolve => {
+        let timer;
+        const done = (e) => {
+            if (e && e.target !== elOptionsInner) return;
+            clearTimeout(timer);
+            elOptionsInner.removeEventListener('animationend', done);
+            document.body.classList.remove(cls);
+            resolve();
+        };
+        elOptionsInner.addEventListener('animationend', done);
+        // Insurance against a throttled/background tab never firing the event.
+        timer = setTimeout(done, 700);
+        document.body.classList.add(cls);
+    });
+}
+
+async function setMode(next, { animate = true } = {}) {
+    if (shifting) return;
+    if (!animate || reducedMotion()) { applyMode(next); return; }
+    shifting = true;
+    flashModeSwitch();
+    // Heading to the right-hand tab: content exits left, enters from the right.
+    document.body.style.setProperty('--shift-dir', next === 'username' ? '1' : '-1');
+    await shiftPhase('shift-out');
+    applyMode(next);
+    await shiftPhase('shift-in');
+    shifting = false;
 }
 elModeBtns.forEach(b => b.addEventListener('click', () => {
     if (b.dataset.mode !== mode) setMode(b.dataset.mode);

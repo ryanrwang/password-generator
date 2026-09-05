@@ -185,6 +185,34 @@ body[data-mode="username"] .type-cards,
 body[data-mode="username"] .strength-wrap { display: none; }
 body[data-mode="username"] .username-options { display: block; }
 
+/* Page shift between modes — see setMode() in app.js. Both phases carry
+   the card offset so the display content doesn't jump off its resting
+   translateY; --shift-dir (1 = heading right) mirrors the travel. */
+body.shift-out .password-content,
+body.shift-in  .password-content,
+body.shift-out .options-inner,
+body.shift-in  .options-inner { will-change: transform, opacity; }
+
+body.shift-out .password-content { animation: displayShiftOut 0.18s ease-in forwards; }
+body.shift-in  .password-content { animation: displayShiftIn  0.30s cubic-bezier(0.2, 0.8, 0.2, 1); }
+body.shift-out .options-inner    { animation: optionsShiftOut 0.18s ease-in forwards; }
+body.shift-in  .options-inner    { animation: optionsShiftIn  0.30s cubic-bezier(0.2, 0.8, 0.2, 1); }
+
+@keyframes displayShiftOut {
+    to { transform: translateY(var(--card-offset, -24px)) translateX(calc(-56px * var(--shift-dir, 1))); opacity: 0; }
+}
+@keyframes displayShiftIn {
+    from { transform: translateY(var(--card-offset, -24px)) translateX(calc(56px * var(--shift-dir, 1))); opacity: 0; }
+    to   { transform: translateY(var(--card-offset, -24px)) translateX(0); opacity: 1; }
+}
+@keyframes optionsShiftOut {
+    to { transform: translateX(calc(-40px * var(--shift-dir, 1))); opacity: 0; }
+}
+@keyframes optionsShiftIn {
+    from { transform: translateX(calc(40px * var(--shift-dir, 1))); opacity: 0; }
+    to   { transform: translateX(0); opacity: 1; }
+}
+
 /* Usernames: break between words before breaking inside one */
 body[data-mode="username"] .password-display {
     word-break: normal;
