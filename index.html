@@ -14,6 +14,11 @@
 
     <!-- Full-screen password display -->
     <div class="fullscreen-display">
+        <!-- Mode switcher: body[data-mode] drives which controls/effects show -->
+        <div class="mode-switch" role="tablist" aria-label="Generator mode">
+            <button class="mode-btn active" type="button" role="tab" aria-selected="true" data-mode="password">Password</button>
+            <button class="mode-btn" type="button" role="tab" aria-selected="false" data-mode="username">Username</button>
+        </div>
         <div class="password-content">
             <div class="password-wrap">
                 <!-- Live region: announces each new password and any error -->
@@ -44,7 +49,7 @@
                 <div class="type-card" id="card-length">
                     <div class="length-inner">
                         <div class="length-header">
-                            <span class="type-label">Length</span>
+                            <span class="type-label" id="length-label">Length</span>
                             <div class="length-input-wrap">
                                 <button class="length-arrow arrow-left" id="length-arrow-down" aria-label="Decrease length">&#8249;</button>
                                 <input id="length-num" type="number" min="4" max="64" value="16">
@@ -145,6 +150,86 @@
 
                 </div><!-- /type-cards -->
 
+                <!-- Username controls — visible only in username mode. Chip
+                     groups are radio-style: the .active chip is the source of
+                     truth JS reads at startup. -->
+                <div class="username-options" id="username-options">
+
+                    <div class="un-grid">
+
+                        <div class="type-card un-card" id="card-words">
+                            <div class="un-card-inner">
+                                <span class="type-label">Words</span>
+                                <div class="length-input-wrap">
+                                    <button class="length-arrow arrow-left" id="words-arrow-down" type="button" aria-label="Fewer words">&#8249;</button>
+                                    <input id="words-num" type="number" min="1" max="4" value="2" aria-label="Number of words">
+                                    <button class="length-arrow arrow-right" id="words-arrow-up" type="button" aria-label="More words">&#8250;</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="type-card un-card" id="card-wordlist">
+                            <div class="un-card-inner">
+                                <span class="type-label" title="Curated: adjective + noun, about 500 friendly words. Dictionary: EFF wordlist, 7,772 words.">Word list</span>
+                                <div class="chip-group" role="radiogroup" aria-label="Word list" data-opt="list">
+                                    <button class="chip active" type="button" role="radio" aria-checked="true" data-value="curated">Curated</button>
+                                    <button class="chip" type="button" role="radio" aria-checked="false" data-value="eff">Dictionary</button>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div><!-- /un-grid -->
+
+                    <div class="type-card un-card" id="card-format">
+                        <div class="un-card-inner un-rows">
+                            <div class="un-row">
+                                <span class="un-row-label" id="lbl-separator">Separator</span>
+                                <div class="chip-group" role="radiogroup" aria-labelledby="lbl-separator" data-opt="separator">
+                                    <button class="chip active" type="button" role="radio" aria-checked="true" data-value="">None</button>
+                                    <button class="chip" type="button" role="radio" aria-checked="false" data-value=" ">Space</button>
+                                    <button class="chip chip-glyph" type="button" role="radio" aria-checked="false" data-value="_" aria-label="Underscore">_</button>
+                                    <button class="chip chip-glyph" type="button" role="radio" aria-checked="false" data-value="-" aria-label="Hyphen">-</button>
+                                    <button class="chip chip-glyph" type="button" role="radio" aria-checked="false" data-value="." aria-label="Period">.</button>
+                                </div>
+                            </div>
+                            <div class="un-row">
+                                <span class="un-row-label" id="lbl-casing">Casing</span>
+                                <div class="chip-group" role="radiogroup" aria-labelledby="lbl-casing" data-opt="casing">
+                                    <button class="chip" type="button" role="radio" aria-checked="false" data-value="lower">lowercase</button>
+                                    <button class="chip active" type="button" role="radio" aria-checked="true" data-value="capital">Capitalized</button>
+                                    <button class="chip" type="button" role="radio" aria-checked="false" data-value="camel">camelCase</button>
+                                </div>
+                            </div>
+                            <div class="un-row">
+                                <span class="un-row-label" id="lbl-digits">Number</span>
+                                <div class="chip-group" role="radiogroup" aria-labelledby="lbl-digits" data-opt="digits">
+                                    <button class="chip active" type="button" role="radio" aria-checked="true" data-value="0">Off</button>
+                                    <button class="chip" type="button" role="radio" aria-checked="false" data-value="2">2 digits</button>
+                                    <button class="chip" type="button" role="radio" aria-checked="false" data-value="4">4 digits</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="type-card un-card" id="card-required">
+                        <div class="un-card-inner un-rows">
+                            <div class="un-row">
+                                <label class="un-row-label" for="required-words">Required</label>
+                                <input id="required-words" type="text" placeholder="e.g. neo, matrix" autocomplete="off" autocapitalize="off" spellcheck="false">
+                            </div>
+                            <div class="un-row">
+                                <span class="un-row-label" id="lbl-placement">Place</span>
+                                <div class="chip-group" role="radiogroup" aria-labelledby="lbl-placement" data-opt="placement">
+                                    <button class="chip" type="button" role="radio" aria-checked="false" data-value="start">Start</button>
+                                    <button class="chip" type="button" role="radio" aria-checked="false" data-value="end">End</button>
+                                    <button class="chip active" type="button" role="radio" aria-checked="true" data-value="random">Random</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div><!-- /username-options -->
+
                 <button id="generate-btn" class="btn btn-primary">Generate</button>
 
                 <footer class="app-footer">
@@ -157,6 +242,8 @@
         </div>
     </div>
 
+    <script src="words.js"></script>
+    <script src="words-eff.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

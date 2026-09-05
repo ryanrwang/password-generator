@@ -1,6 +1,6 @@
 # Password Generator
 
-Client-side password generator with entropy-based strength scoring, visual effects (sparkles, warp streaks, electric sparks), and a mobile-first pull-up settings card. No framework, no build step — static files served as-is.
+Client-side password generator with entropy-based strength scoring, visual effects (sparkles, warp streaks, electric sparks), and a mobile-first pull-up settings card. A second mode generates real-word usernames (adjective + noun or EFF dictionary words) with separator, casing, digit and required-word controls. No framework, no build step — static files served as-is.
 
 ## Tech Stack
 - Vanilla HTML / CSS / JavaScript (no framework, no bundler)
@@ -15,9 +15,11 @@ Client-side password generator with entropy-based strength scoring, visual effec
 
 ## Folder Structure
 ```
-index.html      – single-page UI
-app.js          – all logic (generation, strength calc, UI, animations)
+index.html      – single-page UI (both modes; username controls are in #username-options)
+app.js          – all logic (generation, strength calc, UI, animations, mode switch)
 style.css       – all styles including responsive breakpoints + animations
+words.js        – curated adjective/noun lists for username mode (CURATED_ADJECTIVES, CURATED_NOUNS)
+words-eff.js    – EFF large wordlist as EFF_WORDS (CC BY 3.0, generated — don't hand-edit)
 .github/workflows/deploy.yml – FTP deploy to Bluehost
 .claude/launch.json          – dev server config for Claude preview
 ```
@@ -29,6 +31,9 @@ style.css       – all styles including responsive breakpoints + animations
 - **Colours live in CSS custom properties** on `:root` in `style.css` (`--accent-*`, `--card-*`, `--panel-bg`, …). Don't hardcode hex values in `app.js` — if JS needs a colour, read it back with `getComputedStyle`, or emit `var(--token)` into the style string. Gradient stops local to one effect (strength tiers, spark palettes) may stay literal.
 - **Strength bar appearance is CSS.** `STRENGTH_TIERS` in `app.js` maps a length to a `.tier-*` class; every colour, glow and pulse lives in `style.css`, including a `--tint` that JS reads back to build the panel glow. JS sets only the class and the width. To retune the ramp, edit the CSS.
 - **FTP deploy secrets** (`FTP_SERVER`, `FTP_USERNAME`, `FTP_PASSWORD`) are in GitHub repo settings. The deploy uploads `./` to `/apps/passgen/` on the server, minus the `exclude` list in the workflow — specifying `exclude` replaces the action's defaults, so `.git*`/`node_modules`/`.DS_Store` must stay listed alongside `.claude/` and `CLAUDE.md`.
+- **Modes.** `body[data-mode]` is `password` or `username`; `setMode()` in `app.js` is the only writer and mirrors it to the `#username` URL hash. CSS keys every per-mode show/hide off that attribute — don't toggle visibility from JS. Username mode hides the strength bar and effects (`updateStrengthUI(null)`) and relabels the shared length card as a maximum.
+- **Username chips.** Radio-style `.chip-group[data-opt]` buttons; the `.active` chip in the HTML is the default JS reads at startup, so change defaults in `index.html`, not `app.js`. `data-value` for `digits` is numeric; everything else is a string (the separator is the literal join string).
+- **Word lists.** Curated entries must be lowercase letters only, 3–8 chars, no duplicates — they are joined without a separator by default. Words are drawn with `cryptoRandInt()` like everything else. `words-eff.js` is generated from the EFF list with hyphenated entries removed; regenerate rather than edit.
 - **Mobile breakpoints:** 480px (grid reflow) and 768px (toggle switches hidden, cards act as tappable toggles). Preserve this behavior.
 - **Do not modify** `.claude/settings.local.json`.
 

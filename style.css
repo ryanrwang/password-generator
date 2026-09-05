@@ -16,6 +16,11 @@
     --accent-numbers: #4ade80;
     --accent-symbols: #fb923c;
 
+    /* Username mode — words alternate these two so a no-separator join
+       (SwiftFalcon) still reads as two words */
+    --accent-word-a:  var(--accent-upper);
+    --accent-word-b:  var(--accent-lower);
+
     /* Text */
     --text-body:      #e0e0e0;
     --text-muted:     #9999cc;
@@ -52,6 +57,53 @@ body {
     transition: background 0.65s ease;
     isolation: isolate;
 }
+
+/* ── Mode switcher (Password / Username) ── */
+.mode-switch {
+    position: absolute;
+    top: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2;
+    display: flex;
+    gap: 2px;
+    padding: 3px;
+    border-radius: 999px;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+.mode-btn {
+    font-family: 'Noto Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    padding: 6px 18px;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    -webkit-tap-highlight-color: transparent;
+}
+.mode-btn:hover  { color: var(--text-body); }
+.mode-btn.active { background: var(--accent-purple); color: #fff; }
+
+/* What each mode shows. The character cards, strength bar and its effects
+   only exist for secrets; username mode swaps in the word controls. */
+body[data-mode="username"] .type-cards,
+body[data-mode="username"] .strength-wrap { display: none; }
+body[data-mode="username"] .username-options { display: block; }
+
+/* Usernames: break between words before breaking inside one */
+body[data-mode="username"] .password-display {
+    word-break: normal;
+    overflow-wrap: anywhere;
+}
+.un-word-a { color: var(--accent-word-a); }
+.un-word-b { color: var(--accent-word-b); }
 
 /* ── Impact effect on generate ── */
 .password-display.impact {
@@ -506,7 +558,8 @@ body {
 .length-arrow:active {
     background: rgba(127, 90, 240, 0.2);
 }
-#length-num {
+#length-num,
+#words-num {
     width: 48px;
     background: transparent;
     border: none;
@@ -520,11 +573,13 @@ body {
     outline: none;
 }
 #length-num::-webkit-inner-spin-button,
-#length-num::-webkit-outer-spin-button {
+#length-num::-webkit-outer-spin-button,
+#words-num::-webkit-inner-spin-button,
+#words-num::-webkit-outer-spin-button {
     -webkit-appearance: none;
     display: none;
 }
-#length-num { -moz-appearance: textfield; }
+#length-num, #words-num { -moz-appearance: textfield; }
 
 /* Sleek custom range slider — --fill is picked up by updateSliderTrack() */
 #length-slider {
@@ -789,6 +844,73 @@ body {
 }
 .sym-chip:hover { border-color: var(--accent-symbols); background: #1f1008; }
 .sym-chip.off { background: transparent; border-color: #1c1c38; color: #2a2a4a; }
+
+/* ── Username controls (shown via body[data-mode="username"] above) ── */
+.username-options { display: none; margin-bottom: 16px; }
+.un-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+@media (max-width: 480px) {
+    .un-grid { grid-template-columns: 1fr; }
+}
+.un-card { border-color: rgba(127, 90, 240, 0.28); }
+.username-options > .un-card + .un-card { margin-top: 8px; }
+.un-card .type-label { color: #9070d8; }
+.un-card-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 16px;
+}
+.un-rows { flex-direction: column; align-items: stretch; }
+.un-row  { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.un-row-label { font-size: 12px; color: var(--text-muted); min-width: 72px; }
+
+/* Radio-style chips */
+.chip-group { display: flex; flex-wrap: wrap; gap: 4px; }
+.chip {
+    background: transparent;
+    border: 1px solid #2d2d5e;
+    border-radius: 4px;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-family: 'Noto Sans', sans-serif;
+    font-size: 12px;
+    padding: 5px 10px;
+    min-height: 28px;
+    transition: border-color 0.1s, color 0.1s, background 0.1s;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+.chip-glyph  { min-width: 32px; font-family: 'Arvo', serif; font-size: 14px; line-height: 1; }
+.chip:hover  { border-color: var(--accent-purple); color: #c4b5fd; }
+.chip.active { border-color: var(--accent-purple); color: #c4b5fd; background: rgba(127, 90, 240, 0.16); }
+
+#required-words {
+    flex: 1;
+    min-width: 160px;
+    background: #1a1a3e;
+    border: 1px solid #2a2a5a;
+    border-radius: 4px;
+    color: var(--text-body);
+    font-family: 'Noto Sans', sans-serif;
+    font-size: 14px;
+    padding: 6px 10px;
+    outline: none;
+    transition: border-color 0.15s;
+}
+#required-words::placeholder { color: var(--text-label-off); }
+#required-words:focus { border-color: var(--accent-purple); }
+
+@media (max-width: 768px) {
+    .un-card-inner { padding: 12px; }
+    .un-row-label  { min-width: 64px; }
+}
 
 /* ── Mobile compact overrides (must come after base rules) ── */
 @media (max-width: 768px) {
