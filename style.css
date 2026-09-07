@@ -1065,7 +1065,10 @@ body[data-mode="username"] .password-display {
 /* ── BACK-TO-APPS LOGO ──
    Shared across the /apps/ family. The SVG ships white, so it only needs an
    opacity knock-back here — no invert, unlike the light-themed siblings.
-   The spin is left to the global reduced-motion block below. */
+   Hover animation is a coin flip (rw-flip): every app gives this mark its own
+   move, and a flipped coin is the one that belongs to a random generator.
+   Siblings already own spin, wobble and pulse — see the global CLAUDE.md.
+   The flip is left to the global reduced-motion block below. */
 .app-footer {
     display: flex;
     justify-content: center;
@@ -1077,6 +1080,8 @@ body[data-mode="username"] .password-display {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    /* Shallow perspective so the flip reads as a 3D turn, not a squish. */
+    perspective: 120px;
 }
 .rw-back-logo {
     width: 24px;
@@ -1086,11 +1091,14 @@ body[data-mode="username"] .password-display {
 }
 @media (hover: hover) {
     .rw-back-logo:hover { opacity: 0.6; }
-    .app-footer .rw-back-logo:hover { animation: rw-spin 0.6s ease; }
+    .app-footer .rw-back-logo:hover { animation: rw-flip 0.7s ease-in-out; }
 }
-@keyframes rw-spin {
-    from { transform: rotate(0deg); }
-    to   { transform: rotate(360deg); }
+/* Full turn about the vertical axis; scale dips at the edge-on midpoint so
+   the mark seems to arc away and land, the way a tossed coin does. */
+@keyframes rw-flip {
+    0%   { transform: rotateY(0deg)   scale(1); }
+    50%  { transform: rotateY(180deg) scale(0.85); }
+    100% { transform: rotateY(360deg) scale(1); }
 }
 
 /* ── Reduced motion ──
